@@ -1,4 +1,6 @@
 local Map = require("modules.map")
+local Enemy = require("modules.enemy")
+
 
 
 function love.load()
@@ -8,8 +10,9 @@ end
 
 function love.draw()
     Map:draw()
+    
 end
 
 function love.update(dt)
-   
+    Map:update(dt)
 end

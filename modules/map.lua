@@ -1,4 +1,5 @@
 local Map = {}
+local Enemy = require("modules.enemy")
 
 function Map:load()
     self.background = love.graphics.newImage(
@@ -7,6 +8,30 @@ function Map:load()
 
     self.mapWidth = self.background:getWidth()
     self.mapHeight = self.background:getHeight()
+
+    --#map path for enemy
+    self.waypoints = {
+    {x = 90,  y = 220},
+    {x = 200, y = 220},
+    {x = 200, y = 150},
+    {x = 310, y = 150},
+    {x = 310, y = 230},
+    {x = 470, y = 230},
+    {x = 470, y = 330},
+    {x = 600, y = 330},
+    {x = 600, y = 430},
+    {x = 730, y = 430},
+}
+
+self.enemy = Enemy.new(
+    self.waypoints[1].x,
+    self.waypoints[1].y
+)
+
+end
+
+function Map:update(dt)
+    self.enemy:update(dt, self.waypoints)
 end
 
 function Map:draw()
@@ -26,6 +51,26 @@ function Map:draw()
         scaleY
     )
 
+    self.enemy:draw()
+
+    --#debug path
+    love.graphics.setColor(0, 1, 0)
+
+    for i = 1, #self.waypoints - 1 do
+        local a = self.waypoints[i]
+        local b = self.waypoints[i + 1]
+
+        love.graphics.line(
+            a.x,
+            a.y,
+            b.x,
+            b.y
+        )
+    end
+
+    love.graphics.setColor(1, 1, 1)
 end
+
+
 
 return Map
