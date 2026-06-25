@@ -1,6 +1,7 @@
 local Enemy = {}
 Enemy.__index = Enemy
 
+
 function Enemy.new(x, y)
     local self = setmetatable({}, Enemy)
 
@@ -38,9 +39,11 @@ function Enemy:update(dt, waypoints)
 end
 
 function Enemy:draw()
-    love.graphics.setColor(1, 0, 0)
-    love.graphics.circle("fill", self.x, self.y, self.radius)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(
+        love.graphics.newImage("assets/enemy.png"),
+        self.x - self.radius,
+        self.y - self.radius
+    )
 end
 
 return Enemy
