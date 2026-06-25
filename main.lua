@@ -1,9 +1,13 @@
+local Map = require("modules.map")
+
+
 function love.load()
+   Map:load()
    
 end
 
 function love.draw()
-    love.graphics.print("Hey there!", 400, 300)
+    Map:draw()
 end
 
 function love.update(dt)
