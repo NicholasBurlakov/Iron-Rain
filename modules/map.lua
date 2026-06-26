@@ -46,6 +46,11 @@ function Map:update(dt)
         tower:update(dt)
     end
 
+    --#testing enemy damage
+    if love.keyboard.isDown("space") then
+    self.enemy:takeDamage(20 * dt)
+end
+
 end
 
 function Map:draw()
