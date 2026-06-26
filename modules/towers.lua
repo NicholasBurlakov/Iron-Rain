@@ -1,3 +1,4 @@
+local Projectile = require("modules.projectile")
 local Tower = {}
 Tower.__index = Tower
 
@@ -11,11 +12,49 @@ function Tower.new(x, y)
     self.height = 30
 
     self.range = 125
+    self.fireRate = 1
+    self.cooldown = 0
+
+    self.projectiles = {}
 
     return self
 end
 
-function Tower:update(dt)
+function Tower:update(dt, enemy)
+
+    self.cooldown = self.cooldown - dt
+
+    local dx = enemy.x - self.x
+    local dy = enemy.y - self.y
+
+    local distance = math.sqrt(dx * dx + dy * dy)
+
+    if distance <= self.range then
+
+        if self.cooldown <= 0 then
+
+            table.insert(
+                self.projectiles,
+                Projectile.new(self.x, self.y, enemy)
+            )
+
+            self.cooldown = 1 / self.fireRate
+
+        end
+
+    end
+
+    for i = #self.projectiles, 1, -1 do
+
+        local projectile = self.projectiles[i]
+
+        projectile:update(dt)
+
+        if projectile.dead then
+            table.remove(self.projectiles, i)
+        end
+
+    end
 
 end
 
@@ -43,6 +82,10 @@ function Tower:draw()
     )
 
     love.graphics.setColor(1, 1, 1)
+
+    for _, projectile in ipairs(self.projectiles) do
+        projectile:draw()
+    end
 
 end
 

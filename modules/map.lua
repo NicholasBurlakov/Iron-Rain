@@ -43,7 +43,7 @@ function Map:update(dt)
     self.enemy:update(dt, self.waypoints)
 
     for _, tower in ipairs(self.towers) do
-        tower:update(dt)
+        tower:update(dt, self.enemy)
     end
 
     --#testing enemy damage
