@@ -10,6 +10,7 @@ function Enemy.new(x, y)
     self.speed = 100
     self.radius = 12
     self.waypointIndex = 2
+    self.sprite = love.graphics.newImage("assets/enemy.png")
 
     return self
 end
@@ -40,7 +41,7 @@ end
 
 function Enemy:draw()
     love.graphics.draw(
-        love.graphics.newImage("assets/enemy.png"),
+        self.sprite,
         self.x - self.radius,
         self.y - self.radius
     )

@@ -1,5 +1,6 @@
 local Map = {}
 local Enemy = require("modules.enemy")
+local Tower = require("modules.towers")
 
 function Map:load()
     self.background = love.graphics.newImage(
@@ -28,10 +29,23 @@ self.enemy = Enemy.new(
     self.waypoints[1].y
 )
 
+self.towers = {}
+
+table.insert(
+    self.towers,
+    Tower.new(345, 90)
+)
+
 end
 
 function Map:update(dt)
+
     self.enemy:update(dt, self.waypoints)
+
+    for _, tower in ipairs(self.towers) do
+        tower:update(dt)
+    end
+
 end
 
 function Map:draw()
@@ -69,7 +83,12 @@ function Map:draw()
     end
 
     love.graphics.setColor(1, 1, 1)
+
+    for _, tower in ipairs(self.towers) do
+        tower:draw()
+    end
 end
+
 
 
 
