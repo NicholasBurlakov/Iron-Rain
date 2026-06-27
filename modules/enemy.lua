@@ -18,21 +18,22 @@ function Enemy.new(x, y)
     self.health = self.maxHealth
     self.dead = false
     self.rotation = 0 -- Body falls on death via sprite rotation
+    self.reachedEnd = false
 
     -- Sprite
     self.sprite = love.graphics.newImage("assets/enemy.png")
-    
+
 
     return self
 end
 
 function Enemy:update(dt, waypoints)
-
     if self.dead then
         return
     end
 
     if self.waypointIndex > #waypoints then
+        self.reachedEnd = true
         return
     end
 
@@ -53,11 +54,9 @@ function Enemy:update(dt, waypoints)
 
     self.x = self.x + dirX * self.speed * dt
     self.y = self.y + dirY * self.speed * dt
-
 end
 
 function Enemy:takeDamage(amount)
-
     self.health = self.health - amount
 
     if self.health <= 0 then
@@ -73,7 +72,6 @@ function Enemy:takeDamage(amount)
 end
 
 function Enemy:draw()
-
     -- Draw enemy sprite
     love.graphics.setColor(1, 1, 1)
 
@@ -132,7 +130,6 @@ function Enemy:draw()
     )
 
     love.graphics.setColor(1, 1, 1)
-
 end
 
 return Enemy

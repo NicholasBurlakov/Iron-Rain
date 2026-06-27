@@ -4,13 +4,11 @@ local Enemy = require("modules.enemy")
 
 
 function love.load()
-   Map:load()
-   
+    Map:load()
 end
 
 function love.draw()
     Map:draw()
-    
 end
 
 function love.update(dt)
@@ -18,7 +16,9 @@ function love.update(dt)
 end
 
 function love.mousepressed(x, y, button)
-
     Map:mousepressed(x, y, button)
+end
 
+function love.keypressed(key)
+    Map:keypressed(key)
 end

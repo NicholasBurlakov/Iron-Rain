@@ -1,8 +1,9 @@
 {
-    "cSpell.words": [
-        "cooldown",
-        "fullscreentype",
-        "mousepressed",
-        "vsync"
-    ]
+  "cSpell.words": [
+    "cooldown",
+    "fullscreentype",
+    "keypressed",
+    "mousepressed",
+    "vsync"
+  ]
 }

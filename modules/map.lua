@@ -12,14 +12,6 @@ function Map:load()
     self.mapWidth = self.background:getWidth()
     self.mapHeight = self.background:getHeight()
 
-    --#build menu
-    self.buildMenu = BuildMenu.new()
-
-    -- Mission economy.
-    self.supply = 300
-    self.supplyIncome = 10
-
-
     --#map path for enemy
     self.waypoints = {
         { x = 90,   y = 220 },
@@ -35,19 +27,38 @@ function Map:load()
         { x = 1500, y = 600 },
     }
 
-    -- Enemy wave settings.
-    self.enemies = {}
-
+    -- Mission settings.
     self.totalEnemies = 4
-    self.spawnedEnemies = 0
-
     self.spawnDelay = 3
+
+    self.startingSupply = 300
+    self.supplyIncome = 10
+
+    self.buildMenu = BuildMenu.new()
+
+    self:resetMission()
+end
+
+function Map:resetMission()
+    -- Reset battlefield state.
+    self.enemies = {}
+    self.spawnedEnemies = 0
     self.spawnTimer = 0
 
-    self.towers = {}
-
     self.units = {}
+    self.towers = {}
     self.selectedUnit = nil
+
+    self.supply = self.startingSupply
+    self.missionState = "playing"
+
+    self.buildMenu.selected = nil
+
+    -- Temporary starting defense.
+    table.insert(
+        self.towers,
+        Tower.new(375, 190)
+    )
 end
 
 function Map:spawnEnemy()
@@ -61,7 +72,25 @@ function Map:spawnEnemy()
     self.spawnedEnemies = self.spawnedEnemies + 1
 end
 
+function Map:allEnemiesDefeated()
+    if self.spawnedEnemies < self.totalEnemies then
+        return false
+    end
+
+    for _, enemy in ipairs(self.enemies) do
+        if not enemy.dead then
+            return false
+        end
+    end
+
+    return #self.enemies > 0
+end
+
 function Map:update(dt)
+    if self.missionState ~= "playing" then
+        return
+    end
+
     -- Generate Supply over time.
     self.supply = self.supply + self.supplyIncome * dt
 
@@ -75,9 +104,14 @@ function Map:update(dt)
         end
     end
 
-    -- Update every enemy.
+    -- Update enemies and check the endpoint.
     for _, enemy in ipairs(self.enemies) do
         enemy:update(dt, self.waypoints)
+
+        if enemy.reachedEnd then
+            self.missionState = "lost"
+            return
+        end
     end
 
     -- Update towers and their projectiles.
@@ -88,6 +122,11 @@ function Map:update(dt)
     -- Update player units and their projectiles.
     for _, unit in ipairs(self.units) do
         unit:update(dt, self.enemies)
+    end
+
+    -- Check whether the wave has been defeated.
+    if self:allEnemiesDefeated() then
+        self.missionState = "won"
     end
 end
 
@@ -156,9 +195,50 @@ function Map:draw()
     end
 
     self.buildMenu:draw(self.supply)
+
+    if self.missionState ~= "playing" then
+        -- Draw the mission result screen.
+        love.graphics.setColor(0, 0, 0, 0.7)
+
+        love.graphics.rectangle(
+            "fill",
+            0,
+            0,
+            screenWidth,
+            screenHeight
+        )
+
+        local message = "MISSION FAILED"
+
+        if self.missionState == "won" then
+            message = "MISSION COMPLETE"
+        end
+
+        love.graphics.setColor(1, 1, 1)
+
+        love.graphics.printf(
+            message,
+            0,
+            screenHeight / 2 - 30,
+            screenWidth,
+            "center"
+        )
+
+        love.graphics.printf(
+            "Press R to restart",
+            0,
+            screenHeight / 2 + 15,
+            screenWidth,
+            "center"
+        )
+    end
 end
 
 function Map:mousepressed(x, y, button)
+    if self.missionState ~= "playing" then
+        return
+    end
+
     local screenHeight = love.graphics.getHeight()
 
     -- Handle left-clicks.
@@ -236,6 +316,12 @@ function Map:mousepressed(x, y, button)
             and y < screenHeight - self.buildMenu.height then
             self.selectedUnit:moveTo(x, y)
         end
+    end
+end
+
+function Map:keypressed(key)
+    if key == "r" and self.missionState ~= "playing" then
+        self:resetMission()
     end
 end
 
