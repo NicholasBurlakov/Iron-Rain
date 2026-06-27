@@ -1,11 +1,3 @@
-I don't have any further questions right now. I think we have a solid long-term direction, and more importantly, I think we've identified what makes the game unique. Rather than trying to build "Titanfall Tower Defense," we're building a **frontline warfare game** with tower defense DNA.
-
-Here's how I understand the vision so far.
-
----
-
-# Game Vision
-
 ## Core Gameplay
 
 The player commands a futuristic military force in a large-scale battle against an invading enemy army.
