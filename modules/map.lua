@@ -22,34 +22,32 @@ function Map:load()
 
     --#map path for enemy
     self.waypoints = {
-    {x = 90,  y = 220},
-    {x = 200, y = 220},
-    {x = 200, y = 150},
-    {x = 310, y = 150},
-    {x = 310, y = 230},
-    {x = 470, y = 230},
-    {x = 470, y = 330},
-    {x = 600, y = 330},
-    {x = 600, y = 430},
-    {x = 730, y = 430},
-    {x = 1500, y = 600},
-}
+        { x = 90,   y = 220 },
+        { x = 200,  y = 220 },
+        { x = 200,  y = 150 },
+        { x = 310,  y = 150 },
+        { x = 310,  y = 230 },
+        { x = 470,  y = 230 },
+        { x = 470,  y = 330 },
+        { x = 600,  y = 330 },
+        { x = 600,  y = 430 },
+        { x = 730,  y = 430 },
+        { x = 1500, y = 600 },
+    }
 
--- Enemy wave settings.
-self.enemies = {}
+    -- Enemy wave settings.
+    self.enemies = {}
 
-self.totalEnemies = 4
-self.spawnedEnemies = 0
+    self.totalEnemies = 4
+    self.spawnedEnemies = 0
 
-self.spawnDelay = 3
-self.spawnTimer = 0
+    self.spawnDelay = 3
+    self.spawnTimer = 0
 
-self.towers = {}
+    self.towers = {}
 
-self.units = {}
-self.selectedUnit = nil
-
-
+    self.units = {}
+    self.selectedUnit = nil
 end
 
 function Map:spawnEnemy()
@@ -94,7 +92,6 @@ function Map:update(dt)
 end
 
 function Map:draw()
-
     local screenWidth = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
 
@@ -157,11 +154,9 @@ function Map:draw()
 
         love.graphics.setLineWidth(1)
     end
-    
+
     self.buildMenu:draw(self.supply)
-
 end
-
 
 function Map:mousepressed(x, y, button)
     local screenHeight = love.graphics.getHeight()
@@ -198,15 +193,13 @@ function Map:mousepressed(x, y, button)
             local deployed = false
 
             if selectedDeployable == "Rifle"
-            or selectedDeployable == "Heavy" then
-
+                or selectedDeployable == "Heavy" then
                 table.insert(
                     self.units,
                     Unit.new(x, y, selectedDeployable)
                 )
 
                 deployed = true
-
             elseif selectedDeployable == "Turret" then
                 table.insert(
                     self.towers,
@@ -240,13 +233,10 @@ function Map:mousepressed(x, y, button)
     -- Give the selected unit a movement order.
     if button == 2 then
         if self.selectedUnit ~= nil
-        and y < screenHeight - self.buildMenu.height then
-
+            and y < screenHeight - self.buildMenu.height then
             self.selectedUnit:moveTo(x, y)
         end
     end
 end
-
-
 
 return Map
