@@ -15,6 +15,10 @@ function Map:load()
     --#build menu
     self.buildMenu = BuildMenu.new()
 
+    -- Mission economy.
+    self.supply = 300
+    self.supplyIncome = 10
+
 
     --#map path for enemy
     self.waypoints = {
@@ -60,6 +64,9 @@ function Map:spawnEnemy()
 end
 
 function Map:update(dt)
+    -- Generate Supply over time.
+    self.supply = self.supply + self.supplyIncome * dt
+
     -- Spawn the next enemy in the wave.
     if self.spawnedEnemies < self.totalEnemies then
         self.spawnTimer = self.spawnTimer - dt
@@ -151,7 +158,7 @@ function Map:draw()
         love.graphics.setLineWidth(1)
     end
     
-    self.buildMenu:draw()
+    self.buildMenu:draw(self.supply)
 
 end
 
@@ -159,24 +166,37 @@ end
 function Map:mousepressed(x, y, button)
     local screenHeight = love.graphics.getHeight()
 
-    -- Left-click: menu selection, deployment, or unit selection.
+    -- Handle left-clicks.
     if button == 1 then
-        local clickedMenu = self.buildMenu:mousepressed(x, y)
+        local clickedMenu = self.buildMenu:mousepressed(
+            x,
+            y,
+            self.supply
+        )
 
         if clickedMenu then
             self.selectedUnit = nil
             return
         end
 
-        -- Do not interact with the battlefield inside the menu area.
+        -- Ignore clicks inside the menu area.
         if y >= screenHeight - self.buildMenu.height then
             return
         end
 
         local selectedDeployable = self.buildMenu.selected
 
-        -- If a menu item is selected, deploy it first.
+        -- Deploy the selected item.
         if selectedDeployable ~= nil then
+            local cost = self.buildMenu:getSelectedCost()
+
+            if cost == nil or self.supply < cost then
+                self.buildMenu.selected = nil
+                return
+            end
+
+            local deployed = false
+
             if selectedDeployable == "Rifle"
             or selectedDeployable == "Heavy" then
 
@@ -185,18 +205,26 @@ function Map:mousepressed(x, y, button)
                     Unit.new(x, y, selectedDeployable)
                 )
 
+                deployed = true
+
             elseif selectedDeployable == "Turret" then
                 table.insert(
                     self.towers,
                     Tower.new(x, y)
                 )
+
+                deployed = true
+            end
+
+            if deployed then
+                self.supply = self.supply - cost
             end
 
             self.buildMenu.selected = nil
             return
         end
 
-        -- No deployable selected: try to select a unit.
+        -- Try to select a unit.
         for i = #self.units, 1, -1 do
             local unit = self.units[i]
 
@@ -206,11 +234,10 @@ function Map:mousepressed(x, y, button)
             end
         end
 
-        -- Clicking empty ground removes the current selection.
         self.selectedUnit = nil
     end
 
-    -- Right-click: order the selected unit to move.
+    -- Give the selected unit a movement order.
     if button == 2 then
         if self.selectedUnit ~= nil
         and y < screenHeight - self.buildMenu.height then
