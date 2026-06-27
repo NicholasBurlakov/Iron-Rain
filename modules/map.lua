@@ -37,11 +37,6 @@ self.enemy = Enemy.new(
 
 self.towers = {}
 
-table.insert(
-    self.towers,
-    Tower.new(345, 90)
-)
-
 self.units = {}
 self.selectedUnit = nil
 
@@ -57,7 +52,7 @@ function Map:update(dt)
     end
 
     for _, unit in ipairs(self.units) do
-        unit:update(dt)
+        unit:update(dt, self.enemy)
     end
 
     --#testing enemy damage

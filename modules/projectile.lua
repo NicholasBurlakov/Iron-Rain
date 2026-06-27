@@ -1,7 +1,7 @@
 local Projectile = {}
 Projectile.__index = Projectile
 
-function Projectile.new(x, y, target)
+function Projectile.new(x, y, target, damage)
 
     local self = setmetatable({}, Projectile)
 
@@ -11,7 +11,7 @@ function Projectile.new(x, y, target)
     self.target = target
 
     self.speed = 350
-    self.damage = 20
+    self.damage = damage or 20
 
     self.radius = 5
 
