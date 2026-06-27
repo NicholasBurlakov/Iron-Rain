@@ -16,3 +16,9 @@ end
 function love.update(dt)
     Map:update(dt)
 end
+
+function love.mousepressed(x, y, button)
+
+    Map:mousepressed(x, y, button)
+
+end

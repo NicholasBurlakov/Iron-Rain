@@ -1,6 +1,7 @@
 local Map = {}
 local Enemy = require("modules.enemy")
 local Tower = require("modules.towers")
+local BuildMenu = require("modules.buildMenu")
 
 function Map:load()
     self.background = love.graphics.newImage(
@@ -9,6 +10,10 @@ function Map:load()
 
     self.mapWidth = self.background:getWidth()
     self.mapHeight = self.background:getHeight()
+
+    --#build menu
+    self.buildMenu = BuildMenu.new()
+
 
     --#map path for enemy
     self.waypoints = {
@@ -35,6 +40,7 @@ table.insert(
     self.towers,
     Tower.new(345, 90)
 )
+
 
 end
 
@@ -92,8 +98,17 @@ function Map:draw()
     for _, tower in ipairs(self.towers) do
         tower:draw()
     end
+
+    self.buildMenu:draw()
 end
 
+function Map:mousepressed(x, y, button)
+
+    if button == 1 then
+        self.buildMenu:mousepressed(x, y)
+    end
+
+end
 
 
 
