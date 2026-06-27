@@ -20,32 +20,31 @@ function Tower.new(x, y)
     return self
 end
 
-function Tower:update(dt, enemy)
+function Tower:findClosestEnemy(enemies)
+    local closestEnemy = nil
+    local closestDistance = math.huge
 
-    self.cooldown = self.cooldown - dt
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
 
-    local dx = enemy.x - self.x
-    local dy = enemy.y - self.y
-
-    local distance = math.sqrt(dx * dx + dy * dy)
-
-    if distance <= self.range then
-
-        if self.cooldown <= 0 then
-
-            table.insert(
-                self.projectiles,
-                Projectile.new(self.x, self.y, enemy)
-            )
-
-            self.cooldown = 1 / self.fireRate
-
+            if distance <= self.range and distance < closestDistance then
+                closestEnemy = enemy
+                closestDistance = distance
+            end
         end
-
     end
 
-    for i = #self.projectiles, 1, -1 do
+    return closestEnemy
+end
 
+function Tower:update(dt, enemies)
+    self.cooldown = self.cooldown - dt
+
+    -- Update active projectiles.
+    for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
 
         projectile:update(dt)
@@ -53,9 +52,19 @@ function Tower:update(dt, enemy)
         if projectile.dead then
             table.remove(self.projectiles, i)
         end
-
     end
 
+    -- Find a target and fire.
+    local target = self:findClosestEnemy(enemies)
+
+    if target ~= nil and self.cooldown <= 0 then
+        table.insert(
+            self.projectiles,
+            Projectile.new(self.x, self.y, target)
+        )
+
+        self.cooldown = 1 / self.fireRate
+    end
 end
 
 function Tower:draw()

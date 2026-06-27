@@ -37,12 +37,31 @@ function Unit.new(x, y, unitType)
     return self
 end
 
-function Unit:update(dt, enemy)
+function Unit:findClosestEnemy(enemies)
+    local closestEnemy = nil
+    local closestDistance = math.huge
+
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range and distance < closestDistance then
+                closestEnemy = enemy
+                closestDistance = distance
+            end
+        end
+    end
+
+    return closestEnemy
+end
+
+function Unit:update(dt, enemies)
     -- Move toward the current order.
     if self.targetX ~= nil and self.targetY ~= nil then
         local dx = self.targetX - self.x
         local dy = self.targetY - self.y
-
         local distance = math.sqrt(dx * dx + dy * dy)
 
         if distance <= self.speed * dt then
@@ -71,21 +90,15 @@ function Unit:update(dt, enemy)
         end
     end
 
-    -- Attack the current enemy when in range.
-    if enemy == nil or enemy.dead then
-        return
-    end
-
+    -- Find a target and fire.
     self.cooldown = self.cooldown - dt
+    
+    local target = self:findClosestEnemy(enemies)
 
-    local dx = enemy.x - self.x
-    local dy = enemy.y - self.y
-    local distance = math.sqrt(dx * dx + dy * dy)
-
-    if distance <= self.range and self.cooldown <= 0 then
+    if target ~= nil and self.cooldown <= 0 then
         table.insert(
             self.projectiles,
-            Projectile.new(self.x, self.y, enemy, self.damage)
+            Projectile.new(self.x, self.y, target, self.damage)
         )
 
         self.cooldown = 1 / self.fireRate

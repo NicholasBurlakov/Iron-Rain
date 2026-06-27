@@ -30,10 +30,14 @@ function Map:load()
     {x = 730, y = 430},
 }
 
-self.enemy = Enemy.new(
-    self.waypoints[1].x,
-    self.waypoints[1].y
-)
+-- Enemy wave settings.
+self.enemies = {}
+
+self.totalEnemies = 4
+self.spawnedEnemies = 0
+
+self.spawnDelay = 3
+self.spawnTimer = 0
 
 self.towers = {}
 
@@ -43,24 +47,42 @@ self.selectedUnit = nil
 
 end
 
+function Map:spawnEnemy()
+    local start = self.waypoints[1]
+
+    table.insert(
+        self.enemies,
+        Enemy.new(start.x, start.y)
+    )
+
+    self.spawnedEnemies = self.spawnedEnemies + 1
+end
+
 function Map:update(dt)
+    -- Spawn the next enemy in the wave.
+    if self.spawnedEnemies < self.totalEnemies then
+        self.spawnTimer = self.spawnTimer - dt
 
-    self.enemy:update(dt, self.waypoints)
+        if self.spawnTimer <= 0 then
+            self:spawnEnemy()
+            self.spawnTimer = self.spawnDelay
+        end
+    end
 
+    -- Update every enemy.
+    for _, enemy in ipairs(self.enemies) do
+        enemy:update(dt, self.waypoints)
+    end
+
+    -- Update towers and their projectiles.
     for _, tower in ipairs(self.towers) do
-        tower:update(dt, self.enemy)
+        tower:update(dt, self.enemies)
     end
 
+    -- Update player units and their projectiles.
     for _, unit in ipairs(self.units) do
-        unit:update(dt, self.enemy)
+        unit:update(dt, self.enemies)
     end
-
-    --#testing enemy damage
-    if love.keyboard.isDown("space") then
-        self.enemy:takeDamage(20 * dt)
-    end
-
-    
 end
 
 function Map:draw()
@@ -80,7 +102,10 @@ function Map:draw()
         scaleY
     )
 
-    self.enemy:draw()
+    -- Draw every enemy, including corpses.
+    for _, enemy in ipairs(self.enemies) do
+        enemy:draw()
+    end
 
     --#debug path
     love.graphics.setColor(0, 1, 0)
