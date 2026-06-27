@@ -28,6 +28,7 @@ function Map:load()
     {x = 600, y = 330},
     {x = 600, y = 430},
     {x = 730, y = 430},
+    {x = 1500, y = 600},
 }
 
 -- Enemy wave settings.
