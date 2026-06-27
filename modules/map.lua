@@ -114,21 +114,21 @@ function Map:draw()
     end
 
     if self.selectedUnit ~= nil then
-    local unit = self.selectedUnit
+        local unit = self.selectedUnit
 
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.setLineWidth(2)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.setLineWidth(2)
 
-    love.graphics.rectangle(
-        "line",
-        unit.x - unit.width / 2 - 3,
-        unit.y - unit.height / 2 - 3,
-        unit.width + 6,
-        unit.height + 6
-    )
+        love.graphics.rectangle(
+            "line",
+            unit.x - unit.width / 2 - 3,
+            unit.y - unit.height / 2 - 3,
+            unit.width + 6,
+            unit.height + 6
+        )
 
-    love.graphics.setLineWidth(1)
-end
+        love.graphics.setLineWidth(1)
+    end
     
     self.buildMenu:draw()
 
