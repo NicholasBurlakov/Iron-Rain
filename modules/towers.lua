@@ -11,7 +11,7 @@ function Tower.new(x, y)
     self.width = 30
     self.height = 30
 
-    self.range = 125
+    self.range = 500
     self.fireRate = 1
     self.cooldown = 0
 

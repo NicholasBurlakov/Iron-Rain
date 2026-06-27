@@ -16,14 +16,21 @@ function Enemy.new(x, y)
     -- Health
     self.maxHealth = 100
     self.health = self.maxHealth
+    self.dead = false
+    self.rotation = 0 -- Body falls on death via sprite rotation
 
     -- Sprite
     self.sprite = love.graphics.newImage("assets/enemy.png")
+    
 
     return self
 end
 
 function Enemy:update(dt, waypoints)
+
+    if self.dead then
+        return
+    end
 
     if self.waypointIndex > #waypoints then
         return
@@ -53,10 +60,16 @@ function Enemy:takeDamage(amount)
 
     self.health = self.health - amount
 
-    if self.health < 0 then
+    if self.health <= 0 then
         self.health = 0
-    end
+        self.dead = true
 
+        if love.math.random() < 0.5 then
+            self.rotation = math.rad(90)
+        else
+            self.rotation = math.rad(-90)
+        end
+    end
 end
 
 function Enemy:draw()
@@ -66,8 +79,13 @@ function Enemy:draw()
 
     love.graphics.draw(
         self.sprite,
-        self.x - self.radius,
-        self.y - self.radius
+        self.x,
+        self.y,
+        self.rotation,
+        1,
+        1,
+        self.sprite:getWidth() / 2,
+        self.sprite:getHeight() / 2
     )
 
     -- Health Bar
