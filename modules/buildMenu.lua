@@ -87,22 +87,20 @@ function BuildMenu:draw()
 end
 
 function BuildMenu:mousepressed(x, y)
-
     local screenHeight = love.graphics.getHeight()
 
     for _, button in ipairs(self.buttons) do
-
         if x >= button.x
         and x <= button.x + 50
         and y >= screenHeight - 70
         and y <= screenHeight - 20 then
 
             self.selected = button.name
-            return
+            return true
         end
-
     end
 
+    return false
 end
 
 return BuildMenu

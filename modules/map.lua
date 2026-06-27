@@ -2,6 +2,7 @@ local Map = {}
 local Enemy = require("modules.enemy")
 local Tower = require("modules.towers")
 local BuildMenu = require("modules.buildMenu")
+local Unit = require("modules.unit")
 
 function Map:load()
     self.background = love.graphics.newImage(
@@ -41,6 +42,8 @@ table.insert(
     Tower.new(345, 90)
 )
 
+self.units = {}
+
 
 end
 
@@ -52,11 +55,16 @@ function Map:update(dt)
         tower:update(dt, self.enemy)
     end
 
+    for _, unit in ipairs(self.units) do
+        unit:update(dt)
+    end
+
     --#testing enemy damage
     if love.keyboard.isDown("space") then
-    self.enemy:takeDamage(20 * dt)
-end
+        self.enemy:takeDamage(20 * dt)
+    end
 
+    
 end
 
 function Map:draw()
@@ -99,15 +107,55 @@ function Map:draw()
         tower:draw()
     end
 
+
+    for _, unit in ipairs(self.units) do
+        unit:draw()
+    end
+    
     self.buildMenu:draw()
+
 end
 
-function Map:mousepressed(x, y, button)
 
-    if button == 1 then
-        self.buildMenu:mousepressed(x, y)
+function Map:mousepressed(x, y, button)
+    if button ~= 1 then
+        return
     end
 
+    local clickedMenu = self.buildMenu:mousepressed(x, y)
+
+    if clickedMenu then
+        return
+    end
+
+    local selected = self.buildMenu.selected
+
+    if selected == nil then
+        return
+    end
+
+    local screenHeight = love.graphics.getHeight()
+
+    -- Do not allow units or structures to deploy inside the menu.
+    if y >= screenHeight - self.buildMenu.height then
+        return
+    end
+
+    if selected == "Rifle" or selected == "Heavy" then
+        table.insert(
+            self.units,
+            Unit.new(x, y, selected)
+        )
+
+    elseif selected == "Turret" then
+        table.insert(
+            self.towers,
+            Tower.new(x, y)
+        )
+    end
+
+    -- One selection deploys one item.
+    self.buildMenu.selected = nil
 end
 
 
