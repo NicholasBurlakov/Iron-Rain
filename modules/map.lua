@@ -43,6 +43,7 @@ table.insert(
 )
 
 self.units = {}
+self.selectedUnit = nil
 
 
 end
@@ -111,6 +112,23 @@ function Map:draw()
     for _, unit in ipairs(self.units) do
         unit:draw()
     end
+
+    if self.selectedUnit ~= nil then
+    local unit = self.selectedUnit
+
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.setLineWidth(2)
+
+    love.graphics.rectangle(
+        "line",
+        unit.x - unit.width / 2 - 3,
+        unit.y - unit.height / 2 - 3,
+        unit.width + 6,
+        unit.height + 6
+    )
+
+    love.graphics.setLineWidth(1)
+end
     
     self.buildMenu:draw()
 
@@ -118,44 +136,67 @@ end
 
 
 function Map:mousepressed(x, y, button)
-    if button ~= 1 then
-        return
-    end
-
-    local clickedMenu = self.buildMenu:mousepressed(x, y)
-
-    if clickedMenu then
-        return
-    end
-
-    local selected = self.buildMenu.selected
-
-    if selected == nil then
-        return
-    end
-
     local screenHeight = love.graphics.getHeight()
 
-    -- Do not allow units or structures to deploy inside the menu.
-    if y >= screenHeight - self.buildMenu.height then
-        return
+    -- Left-click: menu selection, deployment, or unit selection.
+    if button == 1 then
+        local clickedMenu = self.buildMenu:mousepressed(x, y)
+
+        if clickedMenu then
+            self.selectedUnit = nil
+            return
+        end
+
+        -- Do not interact with the battlefield inside the menu area.
+        if y >= screenHeight - self.buildMenu.height then
+            return
+        end
+
+        local selectedDeployable = self.buildMenu.selected
+
+        -- If a menu item is selected, deploy it first.
+        if selectedDeployable ~= nil then
+            if selectedDeployable == "Rifle"
+            or selectedDeployable == "Heavy" then
+
+                table.insert(
+                    self.units,
+                    Unit.new(x, y, selectedDeployable)
+                )
+
+            elseif selectedDeployable == "Turret" then
+                table.insert(
+                    self.towers,
+                    Tower.new(x, y)
+                )
+            end
+
+            self.buildMenu.selected = nil
+            return
+        end
+
+        -- No deployable selected: try to select a unit.
+        for i = #self.units, 1, -1 do
+            local unit = self.units[i]
+
+            if unit:containsPoint(x, y) then
+                self.selectedUnit = unit
+                return
+            end
+        end
+
+        -- Clicking empty ground removes the current selection.
+        self.selectedUnit = nil
     end
 
-    if selected == "Rifle" or selected == "Heavy" then
-        table.insert(
-            self.units,
-            Unit.new(x, y, selected)
-        )
+    -- Right-click: order the selected unit to move.
+    if button == 2 then
+        if self.selectedUnit ~= nil
+        and y < screenHeight - self.buildMenu.height then
 
-    elseif selected == "Turret" then
-        table.insert(
-            self.towers,
-            Tower.new(x, y)
-        )
+            self.selectedUnit:moveTo(x, y)
+        end
     end
-
-    -- One selection deploys one item.
-    self.buildMenu.selected = nil
 end
 
 
