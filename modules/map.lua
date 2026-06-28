@@ -28,8 +28,12 @@ function Map:load()
     }
 
     -- Mission settings.
-    self.totalEnemies = 4
+    self.totalWaves = 3
+    self.baseEnemiesPerWave = 4
+    self.enemiesPerWaveIncrease = 2
+
     self.spawnDelay = 3
+    self.waveBreakDuration = 8
 
     self.startingSupply = 300
     self.supplyIncome = 10
@@ -42,48 +46,94 @@ end
 function Map:resetMission()
     -- Reset battlefield state.
     self.enemies = {}
-    self.spawnedEnemies = 0
-    self.spawnTimer = 0
-
     self.units = {}
     self.towers = {}
+
     self.selectedUnit = nil
+    self.buildMenu.selected = nil
 
     self.supply = self.startingSupply
     self.missionState = "playing"
 
-    self.buildMenu.selected = nil
+    -- Reset wave state.
+    self.currentWave = 0
+    self.waveState = "active"
+    self.waveTimer = 0
+
+    self.spawnedEnemies = 0
+    self.spawnTimer = 0
+    self.totalEnemies = 0
 
     -- Temporary starting defense.
     table.insert(
         self.towers,
         Tower.new(375, 190)
     )
+
+    self:startNextWave()
+end
+
+function Map:startNextWave()
+    self.currentWave = self.currentWave + 1
+
+    self.totalEnemies =
+        self.baseEnemiesPerWave
+        + (self.currentWave - 1) * self.enemiesPerWaveIncrease
+
+    self.spawnedEnemies = 0
+    self.spawnTimer = 0
+    self.waveState = "active"
 end
 
 function Map:spawnEnemy()
     local start = self.waypoints[1]
 
-    table.insert(
-        self.enemies,
-        Enemy.new(start.x, start.y)
+    local enemy = Enemy.new(start.x, start.y)
+
+    -- Scale enemy strength by wave.
+    enemy.wave = self.currentWave
+
+    local healthMultiplier = 1 + (self.currentWave - 1) * 0.35
+
+    enemy.maxHealth = math.floor(
+        enemy.maxHealth * healthMultiplier
     )
+
+    enemy.health = enemy.maxHealth
+
+    enemy.speed = enemy.speed + (self.currentWave - 1) * 10
+
+    table.insert(self.enemies, enemy)
 
     self.spawnedEnemies = self.spawnedEnemies + 1
 end
 
-function Map:allEnemiesDefeated()
+function Map:currentWaveDefeated()
     if self.spawnedEnemies < self.totalEnemies then
         return false
     end
 
     for _, enemy in ipairs(self.enemies) do
-        if not enemy.dead then
+        if enemy.wave == self.currentWave
+            and not enemy.dead then
             return false
         end
     end
 
-    return #self.enemies > 0
+    return true
+end
+
+function Map:getLivingEnemiesInCurrentWave()
+    local livingEnemies = 0
+
+    for _, enemy in ipairs(self.enemies) do
+        if enemy.wave == self.currentWave
+            and not enemy.dead then
+            livingEnemies = livingEnemies + 1
+        end
+    end
+
+    return livingEnemies
 end
 
 function Map:update(dt)
@@ -94,8 +144,18 @@ function Map:update(dt)
     -- Generate Supply over time.
     self.supply = self.supply + self.supplyIncome * dt
 
-    -- Spawn the next enemy in the wave.
-    if self.spawnedEnemies < self.totalEnemies then
+    -- Count down between waves.
+    if self.waveState == "preparing" then
+        self.waveTimer = self.waveTimer - dt
+
+        if self.waveTimer <= 0 then
+            self:startNextWave()
+        end
+    end
+
+    -- Spawn enemies during an active wave.
+    if self.waveState == "active"
+        and self.spawnedEnemies < self.totalEnemies then
         self.spawnTimer = self.spawnTimer - dt
 
         if self.spawnTimer <= 0 then
@@ -114,19 +174,24 @@ function Map:update(dt)
         end
     end
 
-    -- Update towers and their projectiles.
+    -- Update player defenses.
     for _, tower in ipairs(self.towers) do
         tower:update(dt, self.enemies)
     end
 
-    -- Update player units and their projectiles.
     for _, unit in ipairs(self.units) do
         unit:update(dt, self.enemies)
     end
 
-    -- Check whether the wave has been defeated.
-    if self:allEnemiesDefeated() then
-        self.missionState = "won"
+    -- Advance to the next wave or finish the mission.
+    if self.waveState == "active"
+        and self:currentWaveDefeated() then
+        if self.currentWave >= self.totalWaves then
+            self.missionState = "won"
+        else
+            self.waveState = "preparing"
+            self.waveTimer = self.waveBreakDuration
+        end
     end
 end
 
@@ -195,6 +260,33 @@ function Map:draw()
     end
 
     self.buildMenu:draw(self.supply)
+    
+    -- Draw wave status.
+    love.graphics.setColor(1, 1, 1)
+
+    local waveText
+
+    if self.waveState == "preparing" then
+        waveText =
+            "Next Wave: "
+            .. (self.currentWave + 1)
+            .. " / "
+            .. self.totalWaves
+            .. " in "
+            .. math.ceil(self.waveTimer)
+            .. " seconds"
+    else
+        waveText =
+            "Wave "
+            .. self.currentWave
+            .. " / "
+            .. self.totalWaves
+            .. " - "
+            .. self:getLivingEnemiesInCurrentWave()
+            .. " enemies remaining"
+    end
+
+    love.graphics.print(waveText, 20, 20)
 
     if self.missionState ~= "playing" then
         -- Draw the mission result screen.
