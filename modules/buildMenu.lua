@@ -47,7 +47,8 @@ function BuildMenu.new()
     return self
 end
 
-function BuildMenu:draw(supply, usedCapacity, commandCapacity)
+function BuildMenu:draw(supply, usedCapacity, commandCapacity, availableDropships, dropshipFleetSize, orbitalPodReady,
+                        orbitalPodTimer)
     local screenWidth = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
 
@@ -69,9 +70,17 @@ function BuildMenu:draw(supply, usedCapacity, commandCapacity)
 
         local hasCapacity = usedCapacity + button.capacity <= commandCapacity
 
+        local logisticsReady =
+            self:isLogisticsReady(
+                button,
+                availableDropships,
+                orbitalPodReady
+            )
+
         if not available
             or supply < button.cost
-            or not hasCapacity then
+            or not hasCapacity
+            or not logisticsReady then
             alpha = 0.35
         end
 
@@ -124,20 +133,50 @@ function BuildMenu:draw(supply, usedCapacity, commandCapacity)
         )
     end
 
-    -- Draw current Supply.
+    local statusX = screenWidth - 240
+    local menuTop = screenHeight - self.height
+
+    local podStatus = "Pod: READY"
+
+    if not orbitalPodReady then
+        podStatus =
+            "Pod: FAB "
+            .. string.format(
+                "%.1fs",
+                math.max(0, orbitalPodTimer)
+            )
+    end
+
+    love.graphics.setColor(1, 1, 1)
+
     love.graphics.print(
         "Supply: " .. math.floor(supply),
-        screenWidth - 150,
-        screenHeight - 55
+        statusX,
+        menuTop + 10
     )
-    -- Draw current Capacity.
+
     love.graphics.print(
         "Capacity: "
         .. usedCapacity
         .. " / "
         .. commandCapacity,
-        screenWidth - 150,
-        screenHeight - 30
+        statusX,
+        menuTop + 31
+    )
+
+    love.graphics.print(
+        "Dropships: "
+        .. availableDropships
+        .. " / "
+        .. dropshipFleetSize,
+        statusX,
+        menuTop + 52
+    )
+
+    love.graphics.print(
+        podStatus,
+        statusX,
+        menuTop + 73
     )
 end
 
@@ -161,7 +200,25 @@ function BuildMenu:getSelectedCapacity()
     return nil
 end
 
-function BuildMenu:mousepressed(x, y, supply, usedCapacity, commandCapacity)
+function BuildMenu:isLogisticsReady(
+    button,
+    availableDropships,
+    orbitalPodReady
+)
+    if button.name == "Rifle"
+        or button.name == "Heavy" then
+        return availableDropships > 0
+    end
+
+    if button.name == "Turret"
+        or button.name == "Mine" then
+        return orbitalPodReady
+    end
+
+    return true
+end
+
+function BuildMenu:mousepressed(x, y, supply, usedCapacity, commandCapacity, availableDropships, orbitalPodReady)
     local screenHeight = love.graphics.getHeight()
 
     for _, button in ipairs(self.buttons) do
@@ -178,9 +235,17 @@ function BuildMenu:mousepressed(x, y, supply, usedCapacity, commandCapacity)
 
             local hasCapacity = usedCapacity + button.capacity <= commandCapacity
 
+            local logisticsReady =
+                self:isLogisticsReady(
+                    button,
+                    availableDropships,
+                    orbitalPodReady
+                )
+
             if available
                 and supply >= button.cost
-                and hasCapacity then
+                and hasCapacity
+                and logisticsReady then
                 self.selected = button.name
             end
 

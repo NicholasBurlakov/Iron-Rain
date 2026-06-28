@@ -39,6 +39,8 @@ function Map:load()
 
     self.startingSupply = 300
     self.startingCommandCapacity = 12
+    self.startingDropshipFleetSize = 1
+    self.orbitalPodFabricationDuration = 6
     self.supplyIncome = 10
 
     self.buildMenu = BuildMenu.new()
@@ -64,6 +66,11 @@ function Map:resetMission()
 
     self.supply = self.startingSupply
     self.commandCapacity = self.startingCommandCapacity
+
+    self.dropshipFleetSize = self.startingDropshipFleetSize
+
+    self.orbitalPodReady = true
+    self.orbitalPodTimer = 0
     self.missionState = "playing"
 
     -- Reset wave state.
@@ -115,6 +122,41 @@ function Map:getUsedCapacity()
     end
 
     return totalCapacity
+end
+
+function Map:getAvailableDropships()
+    local busyDropships = 0
+
+    for _, dropship in ipairs(self.dropships) do
+        if not dropship.dead then
+            busyDropships = busyDropships + 1
+        end
+    end
+
+    return math.max(
+        0,
+        self.dropshipFleetSize - busyDropships
+    )
+end
+
+function Map:isLogisticsReady(deployableType)
+    if deployableType == "Rifle"
+        or deployableType == "Heavy" then
+        return self:getAvailableDropships() > 0
+    end
+
+    if deployableType == "Turret"
+        or deployableType == "Mine" then
+        return self.orbitalPodReady
+    end
+
+    return true
+end
+
+function Map:startOrbitalPodFabrication()
+    self.orbitalPodReady = false
+    self.orbitalPodTimer =
+        self.orbitalPodFabricationDuration
 end
 
 function Map:clearSelectedUnits()
@@ -289,7 +331,15 @@ function Map:callDropship(
     unitType,
     capacityCost
 )
+    if self:getAvailableDropships() <= 0 then
+        return false
+    end
+
     local info = self:getPlacementInfo(unitType)
+
+    if info == nil then
+        return false
+    end
 
     table.insert(
         self.dropships,
@@ -312,6 +362,8 @@ function Map:callDropship(
             end
         )
     )
+
+    return true
 end
 
 function Map:dropStructure(
@@ -320,7 +372,18 @@ function Map:dropStructure(
     structureType,
     capacityCost
 )
+    if not self.orbitalPodReady then
+        return false
+    end
+
     local info = self:getPlacementInfo(structureType)
+
+    if info == nil then
+        return false
+    end
+
+    -- A new cargo pod begins fabrication immediately.
+    self:startOrbitalPodFabrication()
 
     table.insert(
         self.orbitalPods,
@@ -343,6 +406,8 @@ function Map:dropStructure(
             end
         )
     )
+
+    return true
 end
 
 function Map:drawPlacementPreview()
@@ -360,11 +425,15 @@ function Map:drawPlacementPreview()
 
     local mouseX, mouseY = love.mouse.getPosition()
 
-    local valid = self:isPlacementValid(
-        mouseX,
-        mouseY,
-        selectedDeployable
-    )
+    local valid =
+        self:isPlacementValid(
+            mouseX,
+            mouseY,
+            selectedDeployable
+        )
+        and self:isLogisticsReady(
+            selectedDeployable
+        )
 
     -- Green means valid. Red means invalid.
     if valid then
@@ -499,6 +568,17 @@ function Map:update(dt)
 
     -- Generate Supply over time.
     self.supply = self.supply + self.supplyIncome * dt
+
+    -- Fabricate the next orbital cargo pod.
+    if not self.orbitalPodReady then
+        self.orbitalPodTimer =
+            self.orbitalPodTimer - dt
+
+        if self.orbitalPodTimer <= 0 then
+            self.orbitalPodTimer = 0
+            self.orbitalPodReady = true
+        end
+    end
 
     -- Count down between waves.
     if self.waveState == "preparing" then
@@ -678,7 +758,15 @@ function Map:draw()
 
     self:drawPlacementPreview()
 
-    self.buildMenu:draw(self.supply, self:getUsedCapacity(), self.commandCapacity)
+    self.buildMenu:draw(
+        self.supply,
+        self:getUsedCapacity(),
+        self.commandCapacity,
+        self:getAvailableDropships(),
+        self.dropshipFleetSize,
+        self.orbitalPodReady,
+        self.orbitalPodTimer
+    )
 
     -- Draw wave status.
     love.graphics.setColor(1, 1, 1)
@@ -759,7 +847,9 @@ function Map:mousepressed(x, y, button)
             y,
             self.supply,
             self:getUsedCapacity(),
-            self.commandCapacity
+            self.commandCapacity,
+            self:getAvailableDropships(),
+            self.orbitalPodReady
         )
 
         if clickedMenu then
@@ -788,6 +878,13 @@ function Map:mousepressed(x, y, button)
                 return
             end
 
+            -- Wait until a dropship or orbital pod is available.
+            if not self:isLogisticsReady(
+                    selectedDeployable
+                ) then
+                return
+            end
+
             -- Keep the item selected when placement is invalid.
             if not self:isPlacementValid(
                     x,
@@ -801,23 +898,19 @@ function Map:mousepressed(x, y, button)
 
             if selectedDeployable == "Rifle"
                 or selectedDeployable == "Heavy" then
-                self:callDropship(
+                deployed = self:callDropship(
                     x,
                     y,
                     selectedDeployable,
                     capacityCost
                 )
-
-                deployed = true
             elseif selectedDeployable == "Turret" then
-                self:dropStructure(
+                deployed = self:dropStructure(
                     x,
                     y,
                     "Turret",
                     capacityCost
                 )
-
-                deployed = true
             end
 
             if deployed then
