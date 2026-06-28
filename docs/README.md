@@ -1,3 +1,7 @@
+## Development
+
+See [the roadmap](docs/ROADMAP.md) for current progress and planned features.
+
 ## Core Gameplay
 
 The player commands a futuristic military force in a large-scale battle against an invading enemy army.
