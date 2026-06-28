@@ -30,7 +30,7 @@
 * [x] Command Capacity population limit
 * [ ] Deployment cooldown
 * [ ] Extract units for partial Supply refund
-* [ ] Drop-pod or dropship deployment animation
+* [x] Drop-pod or dropship deployment animation
 
 ## Milestone 5 — Structures and Defenses
 

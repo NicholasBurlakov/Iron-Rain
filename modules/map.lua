@@ -3,6 +3,8 @@ local Enemy = require("modules.enemy")
 local Tower = require("modules.towers")
 local BuildMenu = require("modules.buildMenu")
 local Unit = require("modules.unit")
+local Dropship = require("modules.dropship")
+local OrbitalPod = require("modules.orbitalPod")
 
 function Map:load()
     self.background = love.graphics.newImage(
@@ -50,6 +52,9 @@ function Map:resetMission()
     self.units = {}
     self.towers = {}
 
+    self.dropships = {}
+    self.orbitalPods = {}
+
     self.selectedUnits = {}
     self.isSelecting = false
     self.selectionStartX = 0
@@ -96,6 +101,17 @@ function Map:getUsedCapacity()
             totalCapacity =
                 totalCapacity + tower.capacityCost
         end
+    end
+
+    -- Reserve capacity for incoming reinforcements.
+    for _, dropship in ipairs(self.dropships) do
+        totalCapacity =
+            totalCapacity + dropship.capacityCost
+    end
+
+    for _, pod in ipairs(self.orbitalPods) do
+        totalCapacity =
+            totalCapacity + pod.capacityCost
     end
 
     return totalCapacity
@@ -221,7 +237,112 @@ function Map:isPlacementValid(x, y, deployableType)
         end
     end
 
+    -- Do not overlap incoming deliveries.
+    for _, dropship in ipairs(self.dropships) do
+        if not dropship.deployed then
+            local overlapsDropship =
+                self:rectanglesOverlap(
+                    x,
+                    y,
+                    info.width,
+                    info.height,
+                    dropship.payloadX,
+                    dropship.payloadY,
+                    dropship.payloadWidth,
+                    dropship.payloadHeight,
+                    8
+                )
+
+            if overlapsDropship then
+                return false
+            end
+        end
+    end
+
+    for _, pod in ipairs(self.orbitalPods) do
+        if not pod.deployed then
+            local overlapsPod =
+                self:rectanglesOverlap(
+                    x,
+                    y,
+                    info.width,
+                    info.height,
+                    pod.payloadX,
+                    pod.payloadY,
+                    pod.payloadWidth,
+                    pod.payloadHeight,
+                    8
+                )
+
+            if overlapsPod then
+                return false
+            end
+        end
+    end
+
     return true
+end
+
+function Map:callDropship(
+    x,
+    y,
+    unitType,
+    capacityCost
+)
+    local info = self:getPlacementInfo(unitType)
+
+    table.insert(
+        self.dropships,
+        Dropship.new(
+            x,
+            y,
+            unitType,
+            info.width,
+            info.height,
+            capacityCost,
+            function(deployX, deployY, deployedUnitType)
+                table.insert(
+                    self.units,
+                    Unit.new(
+                        deployX,
+                        deployY,
+                        deployedUnitType
+                    )
+                )
+            end
+        )
+    )
+end
+
+function Map:dropStructure(
+    x,
+    y,
+    structureType,
+    capacityCost
+)
+    local info = self:getPlacementInfo(structureType)
+
+    table.insert(
+        self.orbitalPods,
+        OrbitalPod.new(
+            x,
+            y,
+            structureType,
+            info.width,
+            info.height,
+            capacityCost,
+            function(deployX, deployY, deployedStructureType)
+                table.insert(
+                    self.towers,
+                    Tower.new(
+                        deployX,
+                        deployY,
+                        deployedStructureType
+                    )
+                )
+            end
+        )
+    )
 end
 
 function Map:drawPlacementPreview()
@@ -413,6 +534,27 @@ function Map:update(dt)
         end
     end
 
+    -- Update incoming reinforcements.
+    for i = #self.dropships, 1, -1 do
+        local dropship = self.dropships[i]
+
+        dropship:update(dt)
+
+        if dropship.dead then
+            table.remove(self.dropships, i)
+        end
+    end
+
+    for i = #self.orbitalPods, 1, -1 do
+        local pod = self.orbitalPods[i]
+
+        pod:update(dt)
+
+        if pod.dead then
+            table.remove(self.orbitalPods, i)
+        end
+    end
+
     -- Update player defenses.
     for _, tower in ipairs(self.towers) do
         tower:update(dt, self.enemies)
@@ -480,6 +622,15 @@ function Map:draw()
 
     for _, unit in ipairs(self.units) do
         unit:draw()
+    end
+
+    -- Draw active deliveries.
+    for _, dropship in ipairs(self.dropships) do
+        dropship:draw()
+    end
+
+    for _, pod in ipairs(self.orbitalPods) do
+        pod:draw()
     end
 
     -- Draw selected unit outlines.
@@ -650,16 +801,20 @@ function Map:mousepressed(x, y, button)
 
             if selectedDeployable == "Rifle"
                 or selectedDeployable == "Heavy" then
-                table.insert(
-                    self.units,
-                    Unit.new(x, y, selectedDeployable)
+                self:callDropship(
+                    x,
+                    y,
+                    selectedDeployable,
+                    capacityCost
                 )
 
                 deployed = true
             elseif selectedDeployable == "Turret" then
-                table.insert(
-                    self.towers,
-                    Tower.new(x, y, "Turret")
+                self:dropStructure(
+                    x,
+                    y,
+                    "Turret",
+                    capacityCost
                 )
 
                 deployed = true
