@@ -215,7 +215,7 @@ Examples:
 * Supply Drop
 * Reinforcements
 
-These abilities cost Supply and/or operate on cooldowns.
+These abilities cost Supply and/or operate on cooldown.
 
 Some abilities require control of specific objectives.
 
