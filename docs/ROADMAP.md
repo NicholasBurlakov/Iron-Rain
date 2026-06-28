@@ -27,7 +27,7 @@
 
 * [ ] Placement preview
 * [ ] Invalid placement indicator
-* [ ] Command Capacity population limit
+* [x] Command Capacity population limit
 * [ ] Deployment cooldown
 * [ ] Extract units for partial Supply refund
 * [ ] Drop-pod or dropship deployment animation

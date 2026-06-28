@@ -19,6 +19,7 @@ function Unit.new(x, y, unitType)
 
         self.maxHealth = 100
         self.speed = 120
+        self.capacityCost = 1
         self.range = 145
         self.damage = 10
         self.fireRate = 1.4
@@ -30,6 +31,7 @@ function Unit.new(x, y, unitType)
 
         self.maxHealth = 180
         self.speed = 85
+        self.capacityCost = 2
         self.range = 115
         self.damage = 25
         self.fireRate = 0.7

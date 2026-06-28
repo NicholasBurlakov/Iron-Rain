@@ -2,11 +2,14 @@ local Projectile = require("modules.projectile")
 local Tower = {}
 Tower.__index = Tower
 
-function Tower.new(x, y)
+function Tower.new(x, y, towerType)
     local self = setmetatable({}, Tower)
 
     self.x = x
     self.y = y
+
+    self.towerType = towerType or "Turret"
+    self.capacityCost = 2
 
     self.width = 30
     self.height = 30
@@ -68,7 +71,6 @@ function Tower:update(dt, enemies)
 end
 
 function Tower:draw()
-
     -- Tower
     love.graphics.setColor(0.2, 0.5, 1)
 
@@ -95,7 +97,6 @@ function Tower:draw()
     for _, projectile in ipairs(self.projectiles) do
         projectile:draw()
     end
-
 end
 
 return Tower

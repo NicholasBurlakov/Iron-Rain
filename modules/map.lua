@@ -36,6 +36,7 @@ function Map:load()
     self.waveBreakDuration = 8
 
     self.startingSupply = 300
+    self.startingCommandCapacity = 12
     self.supplyIncome = 10
 
     self.buildMenu = BuildMenu.new()
@@ -57,6 +58,7 @@ function Map:resetMission()
     self.buildMenu.selected = nil
 
     self.supply = self.startingSupply
+    self.commandCapacity = self.startingCommandCapacity
     self.missionState = "playing"
 
     -- Reset wave state.
@@ -68,13 +70,35 @@ function Map:resetMission()
     self.spawnTimer = 0
     self.totalEnemies = 0
 
-    -- -- Temporary starting defense.
-    -- table.insert(
-    --     self.towers,
-    --     Tower.new(375, 190)
-    -- )
+    -- Temporary starting defense.
+    table.insert(
+        self.towers,
+        Tower.new(375, 190, "Turret")
+    )
 
     self:startNextWave()
+end
+
+function Map:getUsedCapacity()
+    local totalCapacity = 0
+
+    -- Count living player units.
+    for _, unit in ipairs(self.units) do
+        if not unit.dead then
+            totalCapacity =
+                totalCapacity + unit.capacityCost
+        end
+    end
+
+    -- Count active structures.
+    for _, tower in ipairs(self.towers) do
+        if not tower.dead then
+            totalCapacity =
+                totalCapacity + tower.capacityCost
+        end
+    end
+
+    return totalCapacity
 end
 
 function Map:clearSelectedUnits()
@@ -343,7 +367,7 @@ function Map:draw()
 
     love.graphics.setLineWidth(1)
 
-    self.buildMenu:draw(self.supply)
+    self.buildMenu:draw(self.supply, self:getUsedCapacity(), self.commandCapacity)
 
     -- Draw wave status.
     love.graphics.setColor(1, 1, 1)
@@ -422,7 +446,9 @@ function Map:mousepressed(x, y, button)
         local clickedMenu = self.buildMenu:mousepressed(
             x,
             y,
-            self.supply
+            self.supply,
+            self:getUsedCapacity(),
+            self.commandCapacity
         )
 
         if clickedMenu then
@@ -440,8 +466,13 @@ function Map:mousepressed(x, y, button)
         -- Deploy the selected item.
         if selectedDeployable ~= nil then
             local cost = self.buildMenu:getSelectedCost()
+            local capacityCost = self.buildMenu:getSelectedCapacity()
 
-            if cost == nil or self.supply < cost then
+            if cost == nil
+                or capacityCost == nil
+                or self.supply < cost
+                or self:getUsedCapacity() + capacityCost
+                > self.commandCapacity then
                 self.buildMenu.selected = nil
                 return
             end
@@ -459,7 +490,7 @@ function Map:mousepressed(x, y, button)
             elseif selectedDeployable == "Turret" then
                 table.insert(
                     self.towers,
-                    Tower.new(x, y)
+                    Tower.new(x, y, "Turret")
                 )
 
                 deployed = true
