@@ -117,6 +117,164 @@ function Map:removeDeadSelectedUnits()
     end
 end
 
+function Map:getPlacementInfo(deployableType)
+    if deployableType == "Rifle" then
+        return {
+            width = 18,
+            height = 26
+        }
+    elseif deployableType == "Heavy" then
+        return {
+            width = 24,
+            height = 32
+        }
+    elseif deployableType == "Turret" then
+        return {
+            width = 30,
+            height = 30
+        }
+    end
+
+    return nil
+end
+
+function Map:rectanglesOverlap(
+    x1,
+    y1,
+    width1,
+    height1,
+    x2,
+    y2,
+    width2,
+    height2,
+    padding
+)
+    padding = padding or 0
+
+    return x1 - width1 / 2 - padding
+        < x2 + width2 / 2
+        and x1 + width1 / 2 + padding
+        > x2 - width2 / 2
+        and y1 - height1 / 2 - padding
+        < y2 + height2 / 2
+        and y1 + height1 / 2 + padding
+        > y2 - height2 / 2
+end
+
+function Map:isPlacementValid(x, y, deployableType)
+    local info = self:getPlacementInfo(deployableType)
+
+    if info == nil then
+        return false
+    end
+
+    local screenWidth = love.graphics.getWidth()
+    local screenHeight = love.graphics.getHeight()
+    local battlefieldBottom =
+        screenHeight - self.buildMenu.height
+
+    -- Keep deployments inside the playable area.
+    if x - info.width / 2 < 0
+        or x + info.width / 2 > screenWidth
+        or y - info.height / 2 < 0
+        or y + info.height / 2 > battlefieldBottom then
+        return false
+    end
+
+    -- Do not overlap living player units.
+    for _, unit in ipairs(self.units) do
+        if not unit.dead then
+            local overlapsUnit = self:rectanglesOverlap(
+                x,
+                y,
+                info.width,
+                info.height,
+                unit.x,
+                unit.y,
+                unit.width,
+                unit.height,
+                8
+            )
+
+            if overlapsUnit then
+                return false
+            end
+        end
+    end
+
+    -- Do not overlap existing structures.
+    for _, tower in ipairs(self.towers) do
+        local overlapsTower = self:rectanglesOverlap(
+            x,
+            y,
+            info.width,
+            info.height,
+            tower.x,
+            tower.y,
+            tower.width,
+            tower.height,
+            8
+        )
+
+        if overlapsTower then
+            return false
+        end
+    end
+
+    return true
+end
+
+function Map:drawPlacementPreview()
+    local selectedDeployable = self.buildMenu.selected
+
+    if selectedDeployable == nil then
+        return
+    end
+
+    local info = self:getPlacementInfo(selectedDeployable)
+
+    if info == nil then
+        return
+    end
+
+    local mouseX, mouseY = love.mouse.getPosition()
+
+    local valid = self:isPlacementValid(
+        mouseX,
+        mouseY,
+        selectedDeployable
+    )
+
+    -- Green means valid. Red means invalid.
+    if valid then
+        love.graphics.setColor(0.2, 1, 0.3, 0.45)
+    else
+        love.graphics.setColor(1, 0.2, 0.2, 0.45)
+    end
+
+    love.graphics.rectangle(
+        "fill",
+        mouseX - info.width / 2,
+        mouseY - info.height / 2,
+        info.width,
+        info.height
+    )
+
+    love.graphics.setColor(1, 1, 1, 0.9)
+    love.graphics.setLineWidth(2)
+
+    love.graphics.rectangle(
+        "line",
+        mouseX - info.width / 2,
+        mouseY - info.height / 2,
+        info.width,
+        info.height
+    )
+
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1)
+end
+
 function Map:startNextWave()
     self.currentWave = self.currentWave + 1
 
@@ -367,6 +525,8 @@ function Map:draw()
 
     love.graphics.setLineWidth(1)
 
+    self:drawPlacementPreview()
+
     self.buildMenu:draw(self.supply, self:getUsedCapacity(), self.commandCapacity)
 
     -- Draw wave status.
@@ -474,6 +634,15 @@ function Map:mousepressed(x, y, button)
                 or self:getUsedCapacity() + capacityCost
                 > self.commandCapacity then
                 self.buildMenu.selected = nil
+                return
+            end
+
+            -- Keep the item selected when placement is invalid.
+            if not self:isPlacementValid(
+                    x,
+                    y,
+                    selectedDeployable
+                ) then
                 return
             end
 

@@ -25,8 +25,8 @@
 
 ## Milestone 4 — Deployment Improvements
 
-* [ ] Placement preview
-* [ ] Invalid placement indicator
+* [x] Placement preview
+* [x] Invalid placement indicator
 * [x] Command Capacity population limit
 * [ ] Deployment cooldown
 * [ ] Extract units for partial Supply refund
