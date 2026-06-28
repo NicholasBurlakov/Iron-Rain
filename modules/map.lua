@@ -64,11 +64,11 @@ function Map:resetMission()
     self.spawnTimer = 0
     self.totalEnemies = 0
 
-    -- Temporary starting defense.
-    table.insert(
-        self.towers,
-        Tower.new(375, 190)
-    )
+    -- -- Temporary starting defense.
+    -- table.insert(
+    --     self.towers,
+    --     Tower.new(375, 190)
+    -- )
 
     self:startNextWave()
 end
@@ -199,7 +199,11 @@ function Map:update(dt)
 
     -- Update enemies and check the endpoint.
     for _, enemy in ipairs(self.enemies) do
-        enemy:update(dt, self.waypoints)
+        enemy:update(
+            dt,
+            self.waypoints,
+            self.units
+        )
 
         if enemy.reachedEnd then
             self.missionState = "lost"
