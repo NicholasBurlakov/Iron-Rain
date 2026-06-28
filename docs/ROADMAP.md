@@ -16,12 +16,12 @@
 
 ## Milestone 3 — Player Army Combat
 
-* [ ] Player unit health bars
-* [ ] Enemies attack player units
-* [ ] Player unit death and corpses
-* [ ] Select multiple units
-* [ ] Move selected groups together
-* [ ] Basic unit targeting improvements
+* [x] Player unit health bars
+* [x] Enemies attack player units
+* [x] Player unit death and corpses
+* [x] Select multiple units
+* [x] Move selected groups together
+* [x] Basic unit targeting improvements
 
 ## Milestone 4 — Deployment Improvements
 

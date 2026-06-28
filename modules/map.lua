@@ -49,7 +49,11 @@ function Map:resetMission()
     self.units = {}
     self.towers = {}
 
-    self.selectedUnit = nil
+    self.selectedUnits = {}
+    self.isSelecting = false
+    self.selectionStartX = 0
+    self.selectionStartY = 0
+
     self.buildMenu.selected = nil
 
     self.supply = self.startingSupply
@@ -71,6 +75,22 @@ function Map:resetMission()
     -- )
 
     self:startNextWave()
+end
+
+function Map:clearSelectedUnits()
+    self.selectedUnits = {}
+end
+
+function Map:selectSingleUnit(unit)
+    self.selectedUnits = { unit }
+end
+
+function Map:removeDeadSelectedUnits()
+    for i = #self.selectedUnits, 1, -1 do
+        if self.selectedUnits[i].dead then
+            table.remove(self.selectedUnits, i)
+        end
+    end
 end
 
 function Map:startNextWave()
@@ -219,6 +239,7 @@ function Map:update(dt)
     for _, unit in ipairs(self.units) do
         unit:update(dt, self.enemies)
     end
+    self:removeDeadSelectedUnits()
 
     -- Advance to the next wave or finish the mission.
     if self.waveState == "active"
@@ -279,22 +300,48 @@ function Map:draw()
         unit:draw()
     end
 
-    if self.selectedUnit ~= nil then
-        local unit = self.selectedUnit
+    -- Draw selected unit outlines.
+    for _, unit in ipairs(self.selectedUnits) do
+        if not unit.dead then
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.setLineWidth(2)
 
-        love.graphics.setColor(1, 1, 1)
+            love.graphics.rectangle(
+                "line",
+                unit.x - unit.width / 2 - 3,
+                unit.y - unit.height / 2 - 3,
+                unit.width + 6,
+                unit.height + 6
+            )
+        end
+    end
+
+    -- Draw the current drag-selection box.
+    if self.isSelecting then
+        local mouseX, mouseY = love.mouse.getPosition()
+
+        local boxX = math.min(self.selectionStartX, mouseX)
+        local boxY = math.min(self.selectionStartY, mouseY)
+
+        local boxWidth = math.abs(mouseX - self.selectionStartX)
+        local boxHeight = math.abs(mouseY - self.selectionStartY)
+
+        love.graphics.setColor(0.3, 0.8, 1, 0.8)
         love.graphics.setLineWidth(2)
 
         love.graphics.rectangle(
             "line",
-            unit.x - unit.width / 2 - 3,
-            unit.y - unit.height / 2 - 3,
-            unit.width + 6,
-            unit.height + 6
+            boxX,
+            boxY,
+            boxWidth,
+            boxHeight
         )
 
         love.graphics.setLineWidth(1)
+        love.graphics.setColor(1, 1, 1)
     end
+
+    love.graphics.setLineWidth(1)
 
     self.buildMenu:draw(self.supply)
 
@@ -379,7 +426,7 @@ function Map:mousepressed(x, y, button)
         )
 
         if clickedMenu then
-            self.selectedUnit = nil
+            self:clearSelectedUnits()
             return
         end
 
@@ -426,24 +473,87 @@ function Map:mousepressed(x, y, button)
             return
         end
 
-        -- Try to select a unit.
+        -- Begin unit selection.
+        self.isSelecting = true
+        self.selectionStartX = x
+        self.selectionStartY = y
+    end
+
+    -- Give selected units a movement order.
+    if button == 2 then
+        if y >= screenHeight - self.buildMenu.height then
+            return
+        end
+
+        local unitCount = #self.selectedUnits
+
+        if unitCount == 0 then
+            return
+        end
+
+        local columns = math.ceil(math.sqrt(unitCount))
+        local spacing = 32
+
+        for i, unit in ipairs(self.selectedUnits) do
+            local column = (i - 1) % columns
+            local row = math.floor((i - 1) / columns)
+
+            local offsetX = (column - (columns - 1) / 2) * spacing
+            local offsetY = (row - (columns - 1) / 2) * spacing
+
+            unit:moveTo(x + offsetX, y + offsetY)
+        end
+    end
+end
+
+function Map:mousereleased(x, y, button)
+    if button ~= 1 or not self.isSelecting then
+        return
+    end
+
+    self.isSelecting = false
+
+    local dragDistanceX = math.abs(x - self.selectionStartX)
+    local dragDistanceY = math.abs(y - self.selectionStartY)
+
+    local wasClick =
+        dragDistanceX < 8
+        and dragDistanceY < 8
+
+    -- Handle a single click.
+    if wasClick then
         for i = #self.units, 1, -1 do
             local unit = self.units[i]
 
             if unit:containsPoint(x, y) then
-                self.selectedUnit = unit
+                self:selectSingleUnit(unit)
                 return
             end
         end
 
-        self.selectedUnit = nil
+        self:clearSelectedUnits()
+        return
     end
 
-    -- Give the selected unit a movement order.
-    if button == 2 then
-        if self.selectedUnit ~= nil
-            and y < screenHeight - self.buildMenu.height then
-            self.selectedUnit:moveTo(x, y)
+    -- Handle drag-box selection.
+    local left = math.min(self.selectionStartX, x)
+    local right = math.max(self.selectionStartX, x)
+
+    local top = math.min(self.selectionStartY, y)
+    local bottom = math.max(self.selectionStartY, y)
+
+    self:clearSelectedUnits()
+
+    for _, unit in ipairs(self.units) do
+        local insideBox =
+            not unit.dead
+            and unit.x >= left
+            and unit.x <= right
+            and unit.y >= top
+            and unit.y <= bottom
+
+        if insideBox then
+            table.insert(self.selectedUnits, unit)
         end
     end
 end
@@ -452,15 +562,6 @@ function Map:keypressed(key)
     if key == "r" and self.missionState ~= "playing" then
         self:resetMission()
         return
-    end
-
-    -- Temporary health test.
-    if key == "h" and self.selectedUnit ~= nil then
-        self.selectedUnit:takeDamage(25)
-
-        if self.selectedUnit.dead then
-            self.selectedUnit = nil
-        end
     end
 end
 

@@ -22,3 +22,7 @@ end
 function love.keypressed(key)
     Map:keypressed(key)
 end
+
+function love.mousereleased(x, y, button)
+    Map:mousereleased(x, y, button)
+end
