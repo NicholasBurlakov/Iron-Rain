@@ -447,6 +447,16 @@ end
 function Map:keypressed(key)
     if key == "r" and self.missionState ~= "playing" then
         self:resetMission()
+        return
+    end
+
+    -- Temporary health test.
+    if key == "h" and self.selectedUnit ~= nil then
+        self.selectedUnit:takeDamage(25)
+
+        if self.selectedUnit.dead then
+            self.selectedUnit = nil
+        end
     end
 end
 
