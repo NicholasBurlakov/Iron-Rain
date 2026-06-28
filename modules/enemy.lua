@@ -1,28 +1,52 @@
 local Enemy = {}
 Enemy.__index = Enemy
 
-function Enemy.new(x, y)
+function Enemy.new(x, y, enemyType)
     local self = setmetatable({}, Enemy)
 
     -- Position
     self.x = x
     self.y = y
 
-    -- Movement
-    self.speed = 100
-    self.radius = 12
+    self.enemyType = enemyType or "grunt"
     self.waypointIndex = 2
 
-    -- Health
-    self.maxHealth = 100
+    -- Set stats based on enemy type.
+    if self.enemyType == "scout" then
+        self.maxHealth = 55
+        self.speed = 155
+        self.radius = 9
+        self.width = 14
+        self.height = 24
+        self.color = { 1, 0.8, 0.1 }
+        self.usesSprite = false
+    elseif self.enemyType == "heavy" then
+        self.maxHealth = 250
+        self.speed = 65
+        self.radius = 16
+        self.width = 26
+        self.height = 38
+        self.color = { 1, 0.2, 0.2 }
+        self.usesSprite = false
+    else
+        self.enemyType = "grunt"
+        self.maxHealth = 100
+        self.speed = 100
+        self.radius = 12
+        self.width = 24
+        self.height = 24
+        self.usesSprite = true
+    end
+
     self.health = self.maxHealth
+
+    if self.usesSprite then
+        self.sprite = love.graphics.newImage("assets/enemy.png")
+    end
+
     self.dead = false
     self.rotation = 0 -- Body falls on death via sprite rotation
     self.reachedEnd = false
-
-    -- Sprite
-    self.sprite = love.graphics.newImage("assets/enemy.png")
-
 
     return self
 end
@@ -71,28 +95,49 @@ function Enemy:takeDamage(amount)
     end
 end
 
-function Enemy:draw()
-    -- Draw enemy sprite
-    love.graphics.setColor(1, 1, 1)
+function Enemy:drawBody()
+    if self.usesSprite then
+        love.graphics.setColor(1, 1, 1)
 
-    love.graphics.draw(
-        self.sprite,
-        self.x,
-        self.y,
-        self.rotation,
-        1,
-        1,
-        self.sprite:getWidth() / 2,
-        self.sprite:getHeight() / 2
-    )
+        love.graphics.draw(
+            self.sprite,
+            self.x,
+            self.y,
+            self.rotation,
+            1,
+            1,
+            self.sprite:getWidth() / 2,
+            self.sprite:getHeight() / 2
+        )
+    else
+        love.graphics.setColor(self.color)
+
+        love.graphics.push()
+        love.graphics.translate(self.x, self.y)
+        love.graphics.rotate(self.rotation)
+
+        love.graphics.rectangle(
+            "fill",
+            -self.width / 2,
+            -self.height / 2,
+            self.width,
+            self.height
+        )
+
+        love.graphics.pop()
+    end
+end
+
+function Enemy:draw()
+    -- Draw the enemy body.
+    self:drawBody()
 
     -- Health Bar
-
-    local barWidth = 32
+    local barWidth = math.max(32, self.width + 6)
     local barHeight = 4
 
     local barX = self.x - barWidth / 2
-    local barY = self.y - 24
+    local barY = self.y - self.radius - 12
 
     local healthPercent = self.health / self.maxHealth
 

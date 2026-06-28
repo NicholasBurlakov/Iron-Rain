@@ -85,10 +85,43 @@ function Map:startNextWave()
     self.waveState = "active"
 end
 
+function Map:getEnemyTypeForWave()
+    local enemyNumber = self.spawnedEnemies + 1
+
+    if self.currentWave == 1 then
+        return "grunt"
+    end
+
+    if self.currentWave == 2 then
+        if enemyNumber % 3 == 0 then
+            return "scout"
+        end
+
+        return "grunt"
+    end
+
+    -- Wave 3 and later.
+    if enemyNumber % 4 == 0 then
+        return "heavy"
+    end
+
+    if enemyNumber % 2 == 0 then
+        return "scout"
+    end
+
+    return "grunt"
+end
+
 function Map:spawnEnemy()
     local start = self.waypoints[1]
 
-    local enemy = Enemy.new(start.x, start.y)
+    local enemyType = self:getEnemyTypeForWave()
+
+    local enemy = Enemy.new(
+        start.x,
+        start.y,
+        enemyType
+    )
 
     -- Scale enemy strength by wave.
     enemy.wave = self.currentWave
@@ -260,7 +293,7 @@ function Map:draw()
     end
 
     self.buildMenu:draw(self.supply)
-    
+
     -- Draw wave status.
     love.graphics.setColor(1, 1, 1)
 
