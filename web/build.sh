@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# Create the LÖVE package used by the browser player.
+# Package the current game files for the browser player.
 rm -f web/game.love
 
 zip -qr web/game.love \
