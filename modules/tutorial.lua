@@ -146,6 +146,11 @@ LOGISTICS
 - Dropships must return to orbit before they can deploy more troops.
 - Orbital pods must be fabricated before another structure can deploy.
 - Extraction refunds Supply only after the dropship escapes safely.
+
+DEV NOTES
+- This is a work-in-progress. The game is not yet complete.
+- Please report any bugs or issues to the developer.
+- Enter full screen mode for correct enemy pathing.
 ]]
 
     love.graphics.setColor(0.9, 0.94, 1, 1)
