@@ -5,6 +5,7 @@ local BuildMenu = require("modules.buildMenu")
 local Unit = require("modules.unit")
 local Dropship = require("modules.dropship")
 local OrbitalPod = require("modules.orbitalPod")
+local Tutorial = require("modules.tutorial")
 
 function Map:load()
     self.background = love.graphics.newImage(
@@ -45,6 +46,7 @@ function Map:load()
     self.supplyIncome = 10
 
     self.buildMenu = BuildMenu.new()
+    self.tutorial = Tutorial.new()
 
     self:resetMission()
 end
@@ -622,6 +624,10 @@ function Map:getLivingEnemiesInCurrentWave()
 end
 
 function Map:update(dt)
+    if self.tutorial:isOpen() then
+        return
+    end
+
     if self.missionState ~= "playing" then
         return
     end
@@ -818,6 +824,11 @@ function Map:draw()
 
     love.graphics.setLineWidth(1)
 
+    if self.tutorial:isOpen() then
+        self.tutorial:draw()
+        return
+    end
+
     self:drawPlacementPreview()
 
     self.buildMenu:draw(
@@ -896,6 +907,12 @@ function Map:draw()
 end
 
 function Map:mousepressed(x, y, button)
+    -- Let the briefing handle input before the mission begins.
+    if self.tutorial:isOpen() then
+        self.tutorial:mousepressed(x, y, button)
+        return
+    end
+
     if self.missionState ~= "playing" then
         return
     end
@@ -1017,6 +1034,10 @@ function Map:mousepressed(x, y, button)
 end
 
 function Map:mousereleased(x, y, button)
+    if self.tutorial:isOpen() then
+        return
+    end
+    
     if button ~= 1 or not self.isSelecting then
         return
     end
@@ -1069,6 +1090,12 @@ function Map:mousereleased(x, y, button)
 end
 
 function Map:keypressed(key)
+    -- Let Enter or Space start the mission briefing.
+    if self.tutorial:isOpen() then
+        self.tutorial:keypressed(key)
+        return
+    end
+
     -- Extract selected units with available dropships.
     if key == "e"
         and self.missionState == "playing" then
