@@ -17,17 +17,18 @@ function Map:load()
 
     --#map path for enemy
     self.waypoints = {
-        { x = 90,   y = 220 },
-        { x = 200,  y = 220 },
-        { x = 200,  y = 150 },
-        { x = 310,  y = 150 },
-        { x = 310,  y = 230 },
-        { x = 470,  y = 230 },
-        { x = 470,  y = 330 },
-        { x = 600,  y = 330 },
-        { x = 600,  y = 430 },
-        { x = 730,  y = 430 },
-        { x = 1500, y = 600 },
+        { x = 90,   y = 380 },
+        { x = 445,  y = 380 },
+        { x = 445,  y = 275 },
+        { x = 665,  y = 275 },
+        { x = 665,  y = 400 },
+        { x = 1000, y = 400 },
+        { x = 1000, y = 590 },
+        { x = 1275, y = 590 },
+        { x = 1275, y = 760 },
+        { x = 1600, y = 760 }
+
+
     }
 
     -- Mission settings.
@@ -1037,7 +1038,7 @@ function Map:mousereleased(x, y, button)
     if self.tutorial:isOpen() then
         return
     end
-    
+
     if button ~= 1 or not self.isSelecting then
         return
     end
