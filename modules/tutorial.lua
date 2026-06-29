@@ -21,18 +21,96 @@ function Tutorial:startMission()
     self.open = false
 end
 
-function Tutorial:getStartButtonBounds()
+function Tutorial:getTutorialText()
+    return [[
+MISSION BRIEFING
+
+OBJECTIVE
+Defend the route and destroy every enemy wave before they reach the end.
+
+DEPLOYMENT
+- Click a unit or structure card, then click a green placement area.
+- Green means valid placement. Red means the location is blocked.
+- Rifle and Heavy units arrive by dropship.
+- Turrets arrive by orbital cargo pod.
+
+COMMAND
+- Left-click a unit to select it.
+- Drag a box around multiple units to select a group.
+- Right-click to order selected units to move.
+- Press E to extract selected units when a dropship is available.
+
+LOGISTICS
+- Supply pays for reinforcements and structures.
+- Command Capacity limits your active force.
+- Dropships must return to orbit before they can deploy more troops.
+- Orbital pods must be fabricated before another structure can deploy.
+- Extraction refunds Supply only after the dropship escapes safely.
+
+DEV NOTES
+- This is a work-in-progress. The game is not yet complete.
+- Please report any bugs or issues to the developer.
+- Enter full-screen mode for the correct gameplay experience.
+]]
+end
+
+function Tutorial:getLayout()
     local screenWidth = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
+
+    local panelWidth = math.min(780, screenWidth - 80)
+    local textWidth = panelWidth - 84
+
+    local _, wrappedLines = self.bodyFont:getWrap(
+        self:getTutorialText(),
+        textWidth
+    )
+
+    local textHeight =
+        #wrappedLines * self.bodyFont:getHeight()
 
     local buttonWidth = 250
     local buttonHeight = 55
 
+    local panelHeight =
+        120
+        + textHeight
+        + buttonHeight
+        + 45
+
+    panelHeight = math.min(
+        panelHeight,
+        screenHeight - 40
+    )
+
+    local panelX = screenWidth / 2 - panelWidth / 2
+    local panelY = screenHeight / 2 - panelHeight / 2
+
     return {
-        x = screenWidth / 2 - buttonWidth / 2,
-        y = screenHeight - 105,
-        width = buttonWidth,
-        height = buttonHeight
+        panelX = panelX,
+        panelY = panelY,
+        panelWidth = panelWidth,
+        panelHeight = panelHeight,
+
+        textX = panelX + 42,
+        textY = panelY + 90,
+        textWidth = textWidth,
+
+        buttonX = screenWidth / 2 - buttonWidth / 2,
+        buttonY = panelY + panelHeight - buttonHeight - 20,
+        buttonWidth = buttonWidth,
+        buttonHeight = buttonHeight
+    }
+end
+
+function Tutorial:getStartButtonBounds()
+    local layout = self:getLayout()
+
+    return {
+        x = layout.buttonX,
+        y = layout.buttonY,
+        width = layout.buttonWidth,
+        height = layout.buttonHeight
     }
 end
 
@@ -51,7 +129,7 @@ function Tutorial:mousepressed(x, y, button)
     end
 
     if button == 1
-    and self:isStartButtonClicked(x, y) then
+        and self:isStartButtonClicked(x, y) then
         self:startMission()
     end
 end
@@ -62,7 +140,7 @@ function Tutorial:keypressed(key)
     end
 
     if key == "return"
-    or key == "space" then
+        or key == "space" then
         self:startMission()
     end
 end
@@ -72,11 +150,12 @@ function Tutorial:draw()
     local screenHeight = love.graphics.getHeight()
     local previousFont = love.graphics.getFont()
 
-    local panelWidth = math.min(780, screenWidth - 80)
-    local panelHeight = math.min(590, screenHeight - 60)
+    local layout = self:getLayout()
 
-    local panelX = screenWidth / 2 - panelWidth / 2
-    local panelY = screenHeight / 2 - panelHeight / 2
+    local panelX = layout.panelX
+    local panelY = layout.panelY
+    local panelWidth = layout.panelWidth
+    local panelHeight = layout.panelHeight
 
     -- Darken the battlefield behind the briefing.
     love.graphics.setColor(0, 0, 0, 0.78)
@@ -122,44 +201,15 @@ function Tutorial:draw()
 
     love.graphics.setFont(self.bodyFont)
 
-    local tutorialText = [[
-MISSION BRIEFING
-
-OBJECTIVE
-Defend the route and destroy every enemy wave before they reach the end.
-
-DEPLOYMENT
-- Click a unit or structure card, then click a green placement area.
-- Green means valid placement. Red means the location is blocked.
-- Rifle and Heavy units arrive by dropship.
-- Turrets arrive by orbital cargo pod.
-
-COMMAND
-- Left-click a unit to select it.
-- Drag a box around multiple units to select a group.
-- Right-click to order selected units to move.
-- Press E to extract selected units when a dropship is available.
-
-LOGISTICS
-- Supply pays for reinforcements and structures.
-- Command Capacity limits your active force.
-- Dropships must return to orbit before they can deploy more troops.
-- Orbital pods must be fabricated before another structure can deploy.
-- Extraction refunds Supply only after the dropship escapes safely.
-
-DEV NOTES
-- This is a work-in-progress. The game is not yet complete.
-- Please report any bugs or issues to the developer.
-- Enter full screen mode for correct enemy pathing.
-]]
+    local tutorialText = self:getTutorialText()
 
     love.graphics.setColor(0.9, 0.94, 1, 1)
 
     love.graphics.printf(
         tutorialText,
-        panelX + 42,
-        panelY + 90,
-        panelWidth - 84,
+        layout.textX,
+        layout.textY,
+        layout.textWidth,
         "left"
     )
 
