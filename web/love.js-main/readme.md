@@ -1,0 +1,89 @@
+# love.js
+love.js allows you to run LÖVE 11.5 apps and games on the web.
+The 2dengine version of love.js can run .love files directly, without building or node.js.
+love.js is based on the previous work by Davidobot and Tanner Rogalsky using Emscripten.
+
+The source code is available on [GitHub](https://github.com/2dengine/love.js) and the documentation is hosted on [2dengine.com](https://2dengine.com/doc/lovejs.html)
+
+Please visit https://2dengine.com and support our work, so we can continue developing this project.
+
+## Installation
+The love.js player needs to be installed on a web server (it will not work if you open the "index.html" page locally in your browser).
+Copy all of the love.js files on you server, preferably in a separate directory.
+You need to set the correct HTTP headers on your server for the path where love.js is installed:
+```
+Header set Cross-Origin-Opener-Policy "same-origin"
+Header set Cross-Origin-Embedder-Policy "require-corp"
+```
+Please note that WASM requires the "unsafe-eval" header which may create security vulnerabilities:
+```
+Header set Content-Security-Policy "script-src 'self' 'unsafe-eval';"
+```
+Please review your server configuration and do not set these headers unless you know what you are doing.
+The included .htaccess file attempts to set these headers automatically on Apache servers.
+If it doesn't work in your case, you may want to consider enabling the "AllowOverride" directive and "mod_headers".
+If you are running any other kind of web server (NGINX, OpenResty, Windows Server, etc) you will need to configure the correct headers on your own.
+
+## Usage
+The player.js script creates an HTML canvas element and renders LÖVE inside that canvas.
+You have to use "iframes" if you want to embed multiple instances of love.js on the same page.
+The easiest way is to embed the player as follows:
+```HTML
+<script src='player.js?g=mygame.love'></script>
+```
+Use the `?g=` parameter to specify which game to run.
+
+Additionally, you can pass an array of arguments to your LÖVE app using the `&arg=` parameter.
+Please note the proper use of single and double quotes:
+```HTML
+<script src='player.js?g=mygame.love&arg=["--first","--second"]'></script>
+```
+
+love.js currently supports LÖVE 11.5:
+```HTML
+<script src='player.js?g=mygame.love&v=11.5'></script>
+```
+
+For development purposes, you can disable the package-caching feature using the `&n` parameter:
+```HTML
+<script src='player.js?g=mygame.love&n=1'></script>
+```
+
+Alternatively, you can flush the package cache and reload the page from Lua using:
+```Lua
+love.event.push("quit", "reload")
+```
+
+## Limitations
+love.js is still a work-in-progress and has several known bugs.
+The games run slower compared to other platforms since love.js does not take advantage of LuaJIT.
+Certain games may fail to run or may crash on systems with limited memory.
+Rendering works quite well across browsers although love.js may fail to run when hardware acceleration is unavailable.
+WebGL shaders work differently compared to their desktop counterparts.
+Modern web browsers enforce many limitations so you may encounter issues when:
+* Playing audio (prior to a user gesture)
+* Requesting fullscreen mode (prior to a user gesture)
+* Accessing the clipboard contents
+* Using LuaSocket
+
+## Privacy
+love.js uses indexedDB to cache game packages and store data on the user's device.
+love.js itself is fully GDPR compliant because:
+* Any cached data is stored locally and remains exclusively on the user's machine
+* None of the scripts featured herein collect or process personal information
+If your love.js game collects or processes personal information, you need to include an appropriate notice yourself.
+
+## Credits
+[Love2D](https://love2d.org) by LÖVE Development Team (zLib License)
+
+[Front-end and improvements](https://2dengine.com/doc) by 2dengine LLC (MIT License)
+
+[Emscripten port](https://github.com/Davidobot/love.js) by David Khachaturov (MIT License)
+
+[Original port](https://github.com/TannerRogalsky/love.js/) by Tanner Rogalsky (MIT License)
+
+[CSS spinner](https://projects.lukehaas.me/css-loaders/) by Luke Haas (MIT License)
+
+[print](https://github.com/MrcSnm/Love.js-Api-Player) technique by Marcelo Silva Nascimento Mancini (MIT License)
+
+[io.read](https://github.com/HamdyElzanqali/love-with-js) technique by Hamdy Elzanqali

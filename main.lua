@@ -4,6 +4,11 @@ local Enemy = require("modules.enemy")
 
 
 function love.load()
+    -- Keep desktop builds fullscreen without forcing browser fullscreen.
+    if love.system.getOS() ~= "Web" then
+        love.window.setFullscreen(true, "desktop")
+    end
+
     Map:load()
 end
 
