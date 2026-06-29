@@ -41,6 +41,7 @@ function Map:load()
     self.startingCommandCapacity = 12
     self.startingDropshipFleetSize = 1
     self.orbitalPodFabricationDuration = 6
+    self.extractionRefundPercent = 0.5
     self.supplyIncome = 10
 
     self.buildMenu = BuildMenu.new()
@@ -96,7 +97,8 @@ function Map:getUsedCapacity()
 
     -- Count living player units.
     for _, unit in ipairs(self.units) do
-        if not unit.dead then
+        if not unit.dead
+            and not unit.extracted then
             totalCapacity =
                 totalCapacity + unit.capacityCost
         end
@@ -169,8 +171,18 @@ end
 
 function Map:removeDeadSelectedUnits()
     for i = #self.selectedUnits, 1, -1 do
-        if self.selectedUnits[i].dead then
+        if self.selectedUnits[i].dead
+            or self.selectedUnits[i].isExtracting
+            or self.selectedUnits[i].extracted then
             table.remove(self.selectedUnits, i)
+        end
+    end
+end
+
+function Map:removeExtractedUnits()
+    for i = #self.units, 1, -1 do
+        if self.units[i].extracted then
+            table.remove(self.units, i)
         end
     end
 end
@@ -281,7 +293,8 @@ function Map:isPlacementValid(x, y, deployableType)
 
     -- Do not overlap incoming deliveries.
     for _, dropship in ipairs(self.dropships) do
-        if not dropship.deployed then
+        if dropship.kind == "reinforcement"
+            and not dropship.deployed then
             local overlapsDropship =
                 self:rectanglesOverlap(
                     x,
@@ -359,6 +372,53 @@ function Map:callDropship(
                         deployedUnitType
                     )
                 )
+            end
+        )
+    )
+
+    return true
+end
+
+function Map:requestUnitExtraction(unit)
+    if unit == nil
+        or unit.dead
+        or unit.isExtracting
+        or unit.extracted then
+        return false
+    end
+
+    if self:getAvailableDropships() <= 0 then
+        return false
+    end
+
+    if not unit:beginExtraction() then
+        return false
+    end
+
+    local refund = math.floor(
+        unit.supplyCost
+        * self.extractionRefundPercent
+    )
+
+    table.insert(
+        self.dropships,
+        Dropship.newExtraction(
+            unit,
+
+            -- The unit boards the dropship.
+            function(extractedUnit)
+                if extractedUnit.dead
+                    or extractedUnit.extracted then
+                    return
+                end
+
+                extractedUnit.extracted = true
+                extractedUnit.isExtracting = false
+            end,
+
+            -- Supply returns only when the dropship safely exits.
+            function()
+                self.supply = self.supply + refund
             end
         )
     )
@@ -634,6 +694,8 @@ function Map:update(dt)
             table.remove(self.orbitalPods, i)
         end
     end
+
+    self:removeExtractedUnits()
 
     -- Update player defenses.
     for _, tower in ipairs(self.towers) do
@@ -1007,9 +1069,32 @@ function Map:mousereleased(x, y, button)
 end
 
 function Map:keypressed(key)
-    if key == "r" and self.missionState ~= "playing" then
-        self:resetMission()
+    -- Extract selected units with available dropships.
+    if key == "e"
+        and self.missionState == "playing" then
+        local unitsToExtract = {}
+
+        for _, unit in ipairs(self.selectedUnits) do
+            table.insert(unitsToExtract, unit)
+        end
+
+        self:clearSelectedUnits()
+
+        for _, unit in ipairs(unitsToExtract) do
+            if self:getAvailableDropships() <= 0 then
+                break
+            end
+
+            self:requestUnitExtraction(unit)
+        end
+
         return
+    end
+
+    -- Restart after the mission ends.
+    if key == "r"
+        and self.missionState ~= "playing" then
+        self:resetMission()
     end
 end
 

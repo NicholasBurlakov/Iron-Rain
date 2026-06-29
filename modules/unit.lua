@@ -20,6 +20,7 @@ function Unit.new(x, y, unitType)
         self.maxHealth = 100
         self.speed = 120
         self.capacityCost = 1
+        self.supplyCost = 50
         self.range = 145
         self.damage = 10
         self.fireRate = 1.4
@@ -32,6 +33,7 @@ function Unit.new(x, y, unitType)
         self.maxHealth = 180
         self.speed = 85
         self.capacityCost = 2
+        self.supplyCost = 100
         self.range = 115
         self.damage = 25
         self.fireRate = 0.7
@@ -41,6 +43,8 @@ function Unit.new(x, y, unitType)
 
     self.health = self.maxHealth
     self.dead = false
+    self.isExtracting = false
+    self.extracted = false
     self.rotation = 0
 
     -- Basic combat state.
@@ -51,7 +55,8 @@ function Unit.new(x, y, unitType)
 end
 
 function Unit:takeDamage(amount)
-    if self.dead then
+    if self.dead
+        or self.extracted then
         return
     end
 
@@ -101,7 +106,9 @@ function Unit:update(dt, enemies)
         end
     end
 
-    if self.dead then
+    if self.dead
+        or self.isExtracting
+        or self.extracted then
         return
     end
 
@@ -142,7 +149,9 @@ function Unit:update(dt, enemies)
 end
 
 function Unit:moveTo(x, y)
-    if self.dead then
+    if self.dead
+        or self.isExtracting
+        or self.extracted then
         return
     end
 
@@ -150,10 +159,29 @@ function Unit:moveTo(x, y)
     self.targetY = y
 end
 
-function Unit:containsPoint(x, y)
-    if self.dead then
+function Unit:beginExtraction()
+    if self.dead
+        or self.isExtracting
+        or self.extracted then
         return false
     end
+
+    -- Stop the unit from moving or firing.
+    self.isExtracting = true
+    self.targetX = nil
+    self.targetY = nil
+    self.projectiles = {}
+
+    return true
+end
+
+function Unit:containsPoint(x, y)
+    if self.dead
+        or self.isExtracting
+        or self.extracted then
+        return false
+    end
+
     return x >= self.x - self.width / 2
         and x <= self.x + self.width / 2
         and y >= self.y - self.height / 2
@@ -161,6 +189,11 @@ function Unit:containsPoint(x, y)
 end
 
 function Unit:draw()
+    -- Hide extracted units.
+    if self.extracted then
+        return
+    end
+
     -- Draw the unit body.
     love.graphics.setColor(self.color)
 

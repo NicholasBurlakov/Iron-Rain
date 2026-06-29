@@ -29,7 +29,7 @@
 * [x] Invalid placement indicator
 * [x] Command Capacity population limit
 * [x] Deployment cooldown
-* [ ] Extract units for partial Supply refund
+* [x] Extract units for partial Supply refund
 * [x] Drop-pod or dropship deployment animation
 
 ## Milestone 5 — Structures and Defenses
