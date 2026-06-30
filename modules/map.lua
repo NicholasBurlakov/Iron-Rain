@@ -89,7 +89,7 @@ function Map:resetMission()
     -- Temporary starting defense.
     table.insert(
         self.towers,
-        Tower.new(375, 190, "Turret")
+        Tower.new(375, 250, "Turret")
     )
 
     self:startNextWave()
@@ -672,7 +672,8 @@ function Map:update(dt)
         enemy:update(
             dt,
             self.waypoints,
-            self.units
+            self.units,
+            self.towers
         )
 
         if enemy.reachedEnd then

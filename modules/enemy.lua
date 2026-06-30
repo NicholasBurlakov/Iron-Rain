@@ -85,6 +85,38 @@ function Enemy:findClosestUnit(units)
     return closestUnit
 end
 
+function Enemy:findClosestTower(towers)
+    local closestTower = nil
+    local closestDistance = math.huge
+
+    for _, tower in ipairs(towers) do
+        if not tower.dead then
+            local dx = tower.x - self.x
+            local dy = tower.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range
+                and distance < closestDistance then
+                closestTower = tower
+                closestDistance = distance
+            end
+        end
+    end
+
+    return closestTower
+end
+
+function Enemy:findTarget(units, towers)
+    -- Infantry always has priority over structures.
+    local unitTarget = self:findClosestUnit(units)
+
+    if unitTarget ~= nil then
+        return unitTarget
+    end
+
+    return self:findClosestTower(towers)
+end
+
 function Enemy:takeDamage(amount)
     if self.dead then
         return
@@ -104,7 +136,7 @@ function Enemy:takeDamage(amount)
     end
 end
 
-function Enemy:update(dt, waypoints, units)
+function Enemy:update(dt, waypoints, units, towers)
     -- Update active projectiles.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
@@ -146,8 +178,7 @@ function Enemy:update(dt, waypoints, units)
     -- Find a target and fire.
     self.cooldown = self.cooldown - dt
 
-    local target = self:findClosestUnit(units)
-
+    local target = self:findTarget(units, towers)
     if target ~= nil and self.cooldown <= 0 then
         table.insert(
             self.projectiles,

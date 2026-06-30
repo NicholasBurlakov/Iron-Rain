@@ -1,4 +1,5 @@
 local Projectile = require("modules.projectile")
+
 local Tower = {}
 Tower.__index = Tower
 
@@ -13,6 +14,12 @@ function Tower.new(x, y, towerType)
 
     self.width = 30
     self.height = 30
+    self.radius = math.max(self.width, self.height) / 2
+
+    -- Structure health.
+    self.maxHealth = 220
+    self.health = self.maxHealth
+    self.dead = false
 
     self.range = 500
     self.fireRate = 1
@@ -21,6 +28,19 @@ function Tower.new(x, y, towerType)
     self.projectiles = {}
 
     return self
+end
+
+function Tower:takeDamage(amount)
+    if self.dead then
+        return
+    end
+
+    self.health = self.health - amount
+
+    if self.health <= 0 then
+        self.health = 0
+        self.dead = true
+    end
 end
 
 function Tower:findClosestEnemy(enemies)
@@ -33,7 +53,8 @@ function Tower:findClosestEnemy(enemies)
             local dy = enemy.y - self.y
             local distance = math.sqrt(dx * dx + dy * dy)
 
-            if distance <= self.range and distance < closestDistance then
+            if distance <= self.range
+            and distance < closestDistance then
                 closestEnemy = enemy
                 closestDistance = distance
             end
@@ -44,9 +65,7 @@ function Tower:findClosestEnemy(enemies)
 end
 
 function Tower:update(dt, enemies)
-    self.cooldown = self.cooldown - dt
-
-    -- Update active projectiles.
+    -- Let projectiles already fired continue traveling.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
 
@@ -57,10 +76,17 @@ function Tower:update(dt, enemies)
         end
     end
 
-    -- Find a target and fire.
+    -- Destroyed turrets cannot fire.
+    if self.dead then
+        return
+    end
+
+    self.cooldown = self.cooldown - dt
+
     local target = self:findClosestEnemy(enemies)
 
-    if target ~= nil and self.cooldown <= 0 then
+    if target ~= nil
+    and self.cooldown <= 0 then
         table.insert(
             self.projectiles,
             Projectile.new(self.x, self.y, target)
@@ -70,27 +96,99 @@ function Tower:update(dt, enemies)
     end
 end
 
-function Tower:draw()
-    -- Tower
-    love.graphics.setColor(0.2, 0.5, 1)
+function Tower:drawHealthBar()
+    if self.dead then
+        return
+    end
 
+    local barWidth = math.max(36, self.width + 10)
+    local barHeight = 4
+
+    local barX = self.x - barWidth / 2
+    local barY = self.y - self.height / 2 - 10
+
+    local healthPercent = self.health / self.maxHealth
+
+    love.graphics.setColor(1, 0, 0)
     love.graphics.rectangle(
         "fill",
-        self.x - self.width / 2,
-        self.y - self.height / 2,
-        self.width,
-        self.height
+        barX,
+        barY,
+        barWidth,
+        barHeight
     )
 
-    -- Debug range
-    love.graphics.setColor(0.2, 0.5, 1, 0.25)
+    love.graphics.setColor(0, 1, 0)
+    love.graphics.rectangle(
+        "fill",
+        barX,
+        barY,
+        barWidth * healthPercent,
+        barHeight
+    )
 
-    love.graphics.circle(
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.rectangle(
         "line",
-        self.x,
-        self.y,
-        self.range
+        barX,
+        barY,
+        barWidth,
+        barHeight
     )
+end
+
+function Tower:draw()
+    if self.dead then
+        -- Temporary destroyed-turret wreck.
+        love.graphics.setColor(0.12, 0.12, 0.12)
+
+        love.graphics.rectangle(
+            "fill",
+            self.x - self.width / 2,
+            self.y - self.height / 2,
+            self.width,
+            self.height
+        )
+
+        love.graphics.setColor(0.35, 0.08, 0.08)
+
+        love.graphics.line(
+            self.x - self.width / 2,
+            self.y - self.height / 2,
+            self.x + self.width / 2,
+            self.y + self.height / 2
+        )
+
+        love.graphics.line(
+            self.x + self.width / 2,
+            self.y - self.height / 2,
+            self.x - self.width / 2,
+            self.y + self.height / 2
+        )
+    else
+        -- Active turret.
+        love.graphics.setColor(0.2, 0.5, 1)
+
+        love.graphics.rectangle(
+            "fill",
+            self.x - self.width / 2,
+            self.y - self.height / 2,
+            self.width,
+            self.height
+        )
+
+        -- Debug range.
+        love.graphics.setColor(0.2, 0.5, 1, 0.25)
+
+        love.graphics.circle(
+            "line",
+            self.x,
+            self.y,
+            self.range
+        )
+
+        self:drawHealthBar()
+    end
 
     love.graphics.setColor(1, 1, 1)
 

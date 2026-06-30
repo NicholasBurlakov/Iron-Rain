@@ -36,7 +36,7 @@
 
 * [ ] Mine placement and detonation
 * [ ] Bunkers
-* [ ] Structure health and destruction
+* [x] Structure health and destruction
 * [ ] Missile turret with splash damage
 * [ ] Shield generator
 * [ ] Radar or command structure
