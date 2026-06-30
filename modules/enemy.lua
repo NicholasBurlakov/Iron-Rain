@@ -85,28 +85,29 @@ function Enemy:findClosestUnit(units)
     return closestUnit
 end
 
-function Enemy:findClosestTower(towers)
-    local closestTower = nil
+function Enemy:findClosestStructure(structures)
+    local closestStructure = nil
     local closestDistance = math.huge
 
-    for _, tower in ipairs(towers) do
-        if not tower.dead then
-            local dx = tower.x - self.x
-            local dy = tower.y - self.y
+    for _, structure in ipairs(structures) do
+        if not structure.dead
+            and structure.targetable ~= false then
+            local dx = structure.x - self.x
+            local dy = structure.y - self.y
             local distance = math.sqrt(dx * dx + dy * dy)
 
             if distance <= self.range
                 and distance < closestDistance then
-                closestTower = tower
+                closestStructure = structure
                 closestDistance = distance
             end
         end
     end
 
-    return closestTower
+    return closestStructure
 end
 
-function Enemy:findTarget(units, towers)
+function Enemy:findTarget(units, structures)
     -- Infantry always has priority over structures.
     local unitTarget = self:findClosestUnit(units)
 
@@ -114,7 +115,7 @@ function Enemy:findTarget(units, towers)
         return unitTarget
     end
 
-    return self:findClosestTower(towers)
+    return self:findClosestStructure(structures)
 end
 
 function Enemy:takeDamage(amount)
@@ -136,7 +137,7 @@ function Enemy:takeDamage(amount)
     end
 end
 
-function Enemy:update(dt, waypoints, units, towers)
+function Enemy:update(dt, waypoints, units, structures)
     -- Update active projectiles.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
@@ -178,7 +179,7 @@ function Enemy:update(dt, waypoints, units, towers)
     -- Find a target and fire.
     self.cooldown = self.cooldown - dt
 
-    local target = self:findTarget(units, towers)
+    local target = self:findTarget(units, structures)
     if target ~= nil and self.cooldown <= 0 then
         table.insert(
             self.projectiles,

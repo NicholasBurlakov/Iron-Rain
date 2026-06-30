@@ -37,9 +37,9 @@ function BuildMenu.new()
         {
             name = "Mine",
             color = { 1, 1, 0.3 },
-            cost = 75,
-            capacity = 1,
-            available = false,
+            cost = 125,
+            capacity = 0,
+            available = true,
             x = 365
         }
     }

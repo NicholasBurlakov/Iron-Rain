@@ -1,11 +1,12 @@
-local Map = {}
 local Enemy = require("modules.enemy")
-local Tower = require("modules.towers")
+local Structure = require("modules.structures")
 local BuildMenu = require("modules.buildMenu")
 local Unit = require("modules.unit")
 local Dropship = require("modules.dropship")
 local OrbitalPod = require("modules.orbitalPod")
 local Tutorial = require("modules.tutorial")
+
+local Map = {}
 
 function Map:load()
     self.background = love.graphics.newImage(
@@ -56,8 +57,7 @@ function Map:resetMission()
     -- Reset battlefield state.
     self.enemies = {}
     self.units = {}
-    self.towers = {}
-
+    self.structures = {}
     self.dropships = {}
     self.orbitalPods = {}
 
@@ -88,8 +88,8 @@ function Map:resetMission()
 
     -- Temporary starting defense.
     table.insert(
-        self.towers,
-        Tower.new(375, 250, "Turret")
+        self.structures,
+        Structure.new(375, 250, "Turret")
     )
 
     self:startNextWave()
@@ -108,10 +108,10 @@ function Map:getUsedCapacity()
     end
 
     -- Count active structures.
-    for _, tower in ipairs(self.towers) do
-        if not tower.dead then
+    for _, structure in ipairs(self.structures) do
+        if not structure.dead then
             totalCapacity =
-                totalCapacity + tower.capacityCost
+                totalCapacity + structure.capacityCost
         end
     end
 
@@ -206,6 +206,11 @@ function Map:getPlacementInfo(deployableType)
             width = 30,
             height = 30
         }
+    elseif deployableType == "Mine" then
+        return {
+            width = 22,
+            height = 22
+        }
     end
 
     return nil
@@ -275,22 +280,24 @@ function Map:isPlacementValid(x, y, deployableType)
         end
     end
 
-    -- Do not overlap existing structures.
-    for _, tower in ipairs(self.towers) do
-        local overlapsTower = self:rectanglesOverlap(
-            x,
-            y,
-            info.width,
-            info.height,
-            tower.x,
-            tower.y,
-            tower.width,
-            tower.height,
-            8
-        )
+    -- Do not overlap existing active structures.
+    for _, structure in ipairs(self.structures) do
+        if not structure.dead then
+            local overlapsStructure = self:rectanglesOverlap(
+                x,
+                y,
+                info.width,
+                info.height,
+                structure.x,
+                structure.y,
+                structure.width,
+                structure.height,
+                8
+            )
 
-        if overlapsTower then
-            return false
+            if overlapsStructure then
+                return false
+            end
         end
     end
 
@@ -459,8 +466,8 @@ function Map:dropStructure(
             capacityCost,
             function(deployX, deployY, deployedStructureType)
                 table.insert(
-                    self.towers,
-                    Tower.new(
+                    self.structures,
+                    Structure.new(
                         deployX,
                         deployY,
                         deployedStructureType
@@ -673,7 +680,7 @@ function Map:update(dt)
             dt,
             self.waypoints,
             self.units,
-            self.towers
+            self.structures
         )
 
         if enemy.reachedEnd then
@@ -705,9 +712,9 @@ function Map:update(dt)
 
     self:removeExtractedUnits()
 
-    -- Update player defenses.
-    for _, tower in ipairs(self.towers) do
-        tower:update(dt, self.enemies)
+    -- Update player structures.
+    for _, structure in ipairs(self.structures) do
+        structure:update(dt, self.enemies)
     end
 
     for _, unit in ipairs(self.units) do
@@ -765,8 +772,8 @@ function Map:draw()
 
     love.graphics.setColor(1, 1, 1)
 
-    for _, tower in ipairs(self.towers) do
-        tower:draw()
+    for _, structure in ipairs(self.structures) do
+        structure:draw()
     end
 
 
@@ -985,11 +992,12 @@ function Map:mousepressed(x, y, button)
                     selectedDeployable,
                     capacityCost
                 )
-            elseif selectedDeployable == "Turret" then
+            elseif selectedDeployable == "Turret"
+                or selectedDeployable == "Mine" then
                 deployed = self:dropStructure(
                     x,
                     y,
-                    "Turret",
+                    selectedDeployable,
                     capacityCost
                 )
             end
