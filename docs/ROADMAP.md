@@ -34,7 +34,7 @@
 
 ## Milestone 5 — Structures and Defenses
 
-* [ ] Mine placement and detonation
+* [x] Mine placement and detonation
 * [ ] Bunkers
 * [x] Structure health and destruction
 * [ ] Missile turret with splash damage
