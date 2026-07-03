@@ -137,7 +137,7 @@ function Enemy:takeDamage(amount)
     end
 end
 
-function Enemy:update(dt, waypoints, units, structures)
+function Enemy:update(dt, waypoints, units, structures, terrain)
     -- Update active projectiles.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
@@ -151,6 +151,15 @@ function Enemy:update(dt, waypoints, units, structures)
 
     if self.dead then
         return
+    end
+
+    -- Apply terrain movement effects.
+    local movementSpeed = self.speed
+
+    if terrain ~= nil then
+        movementSpeed =
+            movementSpeed
+            * terrain:getSpeedMultiplier(self.x, self.y)
     end
 
     -- Follow the enemy path.
@@ -172,8 +181,8 @@ function Enemy:update(dt, waypoints, units, structures)
         local dirX = dx / distance
         local dirY = dy / distance
 
-        self.x = self.x + dirX * self.speed * dt
-        self.y = self.y + dirY * self.speed * dt
+        self.x = self.x + dirX * movementSpeed * dt
+        self.y = self.y + dirY * movementSpeed * dt
     end
 
     -- Find a target and fire.
@@ -183,7 +192,16 @@ function Enemy:update(dt, waypoints, units, structures)
     if target ~= nil and self.cooldown <= 0 then
         table.insert(
             self.projectiles,
-            Projectile.new(self.x, self.y, target, self.damage)
+            Projectile.new(
+                self.x,
+                self.y,
+                target,
+                self.damage,
+                nil,
+                nil,
+                nil,
+                terrain
+            )
         )
 
         self.cooldown = 1 / self.fireRate

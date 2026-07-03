@@ -47,6 +47,11 @@ LOGISTICS
 - Orbital pods must be fabricated before another structure can deploy.
 - Extraction refunds Supply only after the dropship escapes safely.
 
+TERRAIN
+- Blue Cover zones reduce each direct projectile hit by 15% to 30%.
+- Brown Rough zones slow all movement by 35%.
+- Explosions and mines ignore Cover.
+
 DEV NOTES
 - This is a work-in-progress. The game is not yet complete.
 - Please report any bugs or issues to the developer.

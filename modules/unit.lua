@@ -94,7 +94,7 @@ function Unit:findClosestEnemy(enemies)
     return closestEnemy
 end
 
-function Unit:update(dt, enemies)
+function Unit:update(dt, enemies, terrain)
     -- Update active projectiles.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
@@ -112,13 +112,22 @@ function Unit:update(dt, enemies)
         return
     end
 
+    -- Apply terrain movement effects.
+    local movementSpeed = self.speed
+
+    if terrain ~= nil then
+        movementSpeed =
+            movementSpeed
+            * terrain:getSpeedMultiplier(self.x, self.y)
+    end
+
     -- Move toward the current order.
     if self.targetX ~= nil and self.targetY ~= nil then
         local dx = self.targetX - self.x
         local dy = self.targetY - self.y
         local distance = math.sqrt(dx * dx + dy * dy)
 
-        if distance <= self.speed * dt then
+        if distance <= movementSpeed * dt then
             self.x = self.targetX
             self.y = self.targetY
 
@@ -128,8 +137,8 @@ function Unit:update(dt, enemies)
             local dirX = dx / distance
             local dirY = dy / distance
 
-            self.x = self.x + dirX * self.speed * dt
-            self.y = self.y + dirY * self.speed * dt
+            self.x = self.x + dirX * movementSpeed * dt
+            self.y = self.y + dirY * movementSpeed * dt
         end
     end
 
@@ -141,7 +150,16 @@ function Unit:update(dt, enemies)
     if target ~= nil and self.cooldown <= 0 then
         table.insert(
             self.projectiles,
-            Projectile.new(self.x, self.y, target, self.damage)
+            Projectile.new(
+                self.x,
+                self.y,
+                target,
+                self.damage,
+                nil,
+                nil,
+                nil,
+                terrain
+            )
         )
 
         self.cooldown = 1 / self.fireRate

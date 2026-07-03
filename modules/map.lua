@@ -5,6 +5,7 @@ local Unit = require("modules.unit")
 local Dropship = require("modules.dropship")
 local OrbitalPod = require("modules.orbitalPod")
 local Tutorial = require("modules.tutorial")
+local Terrain = require("modules.terrain")
 
 local Map = {}
 
@@ -50,6 +51,7 @@ function Map:load()
 
     self.buildMenu = BuildMenu.new()
     self.tutorial = Tutorial.new()
+    self.terrain = Terrain.new()
 
     self:resetMission()
 end
@@ -731,7 +733,8 @@ function Map:update(dt)
             dt,
             self.waypoints,
             self.units,
-            self.structures
+            self.structures,
+            self.terrain
         )
 
         if enemy.reachedEnd then
@@ -765,11 +768,19 @@ function Map:update(dt)
 
     -- Update player structures.
     for _, structure in ipairs(self.structures) do
-        structure:update(dt, self.enemies)
+        structure:update(
+            dt,
+            self.enemies,
+            self.terrain
+        )
     end
 
     for _, unit in ipairs(self.units) do
-        unit:update(dt, self.enemies)
+        unit:update(
+            dt,
+            self.enemies,
+            self.terrain
+        )
     end
     self:removeDeadSelectedUnits()
 
@@ -800,6 +811,9 @@ function Map:draw()
         scaleX,
         scaleY
     )
+
+    -- Draw terrain under units and structures.
+    self.terrain:draw()
 
     -- Draw every enemy, including corpses.
     for _, enemy in ipairs(self.enemies) do
