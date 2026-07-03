@@ -1,18 +1,27 @@
 local Projectile = {}
 Projectile.__index = Projectile
 
-function Projectile.new(x, y, target, damage)
+function Projectile.new(
+    x,
+    y,
+    target,
+    damage,
+    onImpact,
+    color,
+    radius
+)
     local self = setmetatable({}, Projectile)
 
     self.x = x
     self.y = y
 
     self.target = target
+    self.damage = damage or 20
+    self.onImpact = onImpact
 
     self.speed = 350
-    self.damage = damage or 20
-
-    self.radius = 5
+    self.radius = radius or 5
+    self.color = color or { 1, 1, 0 }
 
     self.dead = false
 
@@ -36,10 +45,18 @@ function Projectile:update(dt)
 
     local distance = math.sqrt(dx * dx + dy * dy)
 
-    if distance < self.radius + self.target.radius then
-        self.target:takeDamage(self.damage)
-        self.dead = true
+    if distance <= self.radius + self.target.radius then
+        if self.onImpact ~= nil then
+            self.onImpact(
+                self.target,
+                self.x,
+                self.y
+            )
+        else
+            self.target:takeDamage(self.damage)
+        end
 
+        self.dead = true
         return
     end
 
@@ -51,7 +68,11 @@ function Projectile:update(dt)
 end
 
 function Projectile:draw()
-    love.graphics.setColor(1, 1, 0)
+    love.graphics.setColor(
+        self.color[1],
+        self.color[2],
+        self.color[3]
+    )
 
     love.graphics.circle(
         "fill",

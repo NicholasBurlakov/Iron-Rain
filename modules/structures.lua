@@ -38,6 +38,26 @@ function Structure.new(x, y, structureType)
 
         self.maxHealth = 600
         self.health = self.maxHealth
+    elseif self.structureType == "MissileTurret" then
+        self.width = 38
+        self.height = 38
+        self.radius = 19
+
+        self.capacityCost = 3
+        self.targetable = true
+
+        self.maxHealth = 320
+        self.health = self.maxHealth
+
+        self.range = 600
+        self.fireRate = 0.45
+        self.cooldown = 0
+
+        self.directDamage = 35
+        self.splashDamage = 90
+        self.splashRadius = 70
+
+        self.explosions = {}
     else
         self.structureType = "Turret"
 
@@ -124,6 +144,94 @@ function Structure:updateTurret(dt, enemies)
     end
 end
 
+function Structure:updateMissileTurret(dt, enemies)
+    -- Fade temporary blast visuals.
+    for i = #self.explosions, 1, -1 do
+        local explosion = self.explosions[i]
+
+        explosion.timer = explosion.timer - dt
+
+        if explosion.timer <= 0 then
+            table.remove(self.explosions, i)
+        end
+    end
+
+    -- Update active missiles.
+    for i = #self.projectiles, 1, -1 do
+        local projectile = self.projectiles[i]
+
+        projectile:update(dt)
+
+        if projectile.dead then
+            table.remove(self.projectiles, i)
+        end
+    end
+
+    if self.dead then
+        return
+    end
+
+    self.cooldown = self.cooldown - dt
+
+    local target = self:findClosestEnemy(enemies)
+
+    if target ~= nil
+        and self.cooldown <= 0 then
+        table.insert(
+            self.projectiles,
+            Projectile.new(
+                self.x,
+                self.y,
+                target,
+                self.directDamage,
+
+                -- Deal direct and splash damage at impact.
+                function(hitTarget, impactX, impactY)
+                    if not hitTarget.dead then
+                        hitTarget:takeDamage(
+                            self.directDamage
+                        )
+                    end
+
+                    for _, enemy in ipairs(enemies) do
+                        if not enemy.dead then
+                            local dx = enemy.x - impactX
+                            local dy = enemy.y - impactY
+
+                            local distance = math.sqrt(
+                                dx * dx + dy * dy
+                            )
+
+                            if distance <= self.splashRadius then
+                                enemy:takeDamage(
+                                    self.splashDamage
+                                )
+                            end
+                        end
+                    end
+
+                    table.insert(
+                        self.explosions,
+                        {
+                            x = impactX,
+                            y = impactY,
+                            timer = 0.22,
+                            maxTimer = 0.22,
+                            radius = self.splashRadius
+                        }
+                    )
+                end,
+
+                -- Orange missile projectile.
+                { 1, 0.35, 0.1 },
+                7
+            )
+        )
+
+        self.cooldown = 1 / self.fireRate
+    end
+end
+
 function Structure:updateMine(enemies)
     if self.dead or not self.armed then
         return
@@ -167,6 +275,8 @@ end
 function Structure:update(dt, enemies)
     if self.structureType == "Mine" then
         self:updateMine(enemies)
+    elseif self.structureType == "MissileTurret" then
+        self:updateMissileTurret(dt, enemies)
     elseif self.structureType == "Turret" then
         self:updateTurret(dt, enemies)
     end
@@ -384,13 +494,124 @@ function Structure:drawCommandPost()
     love.graphics.setColor(1, 1, 1)
 end
 
+function Structure:drawMissileTurret()
+    if self.dead then
+        -- Destroyed missile-turret wreck.
+        love.graphics.setColor(0.12, 0.12, 0.12)
+
+        love.graphics.rectangle(
+            "fill",
+            self.x - self.width / 2,
+            self.y - self.height / 2,
+            self.width,
+            self.height
+        )
+
+        love.graphics.setColor(0.5, 0.1, 0.05)
+
+        love.graphics.line(
+            self.x - self.width / 2,
+            self.y - self.height / 2,
+            self.x + self.width / 2,
+            self.y + self.height / 2
+        )
+
+        love.graphics.line(
+            self.x + self.width / 2,
+            self.y - self.height / 2,
+            self.x - self.width / 2,
+            self.y + self.height / 2
+        )
+
+        love.graphics.setColor(1, 1, 1)
+        return
+    end
+
+    -- Active missile turret.
+    love.graphics.setColor(0.9, 0.3, 0.1)
+
+    love.graphics.rectangle(
+        "fill",
+        self.x - self.width / 2,
+        self.y - self.height / 2,
+        self.width,
+        self.height
+    )
+
+    -- Temporary missile-launcher detail.
+    love.graphics.setColor(0.25, 0.25, 0.28)
+
+    love.graphics.rectangle(
+        "fill",
+        self.x - 12,
+        self.y - 8,
+        24,
+        10
+    )
+
+    -- Debug attack range.
+    love.graphics.setColor(1, 0.35, 0.1, 0.22)
+
+    love.graphics.circle(
+        "line",
+        self.x,
+        self.y,
+        self.range
+    )
+
+    self:drawHealthBar()
+
+    -- Draw active missiles.
+    for _, projectile in ipairs(self.projectiles) do
+        projectile:draw()
+    end
+
+    -- Draw short-lived impact explosions.
+    for _, explosion in ipairs(self.explosions) do
+        local percent =
+            explosion.timer / explosion.maxTimer
+
+        love.graphics.setColor(
+            1,
+            0.35,
+            0.08,
+            0.55 * percent
+        )
+
+        love.graphics.circle(
+            "fill",
+            explosion.x,
+            explosion.y,
+            explosion.radius
+            * (1 - percent * 0.25)
+        )
+
+        love.graphics.setColor(
+            1,
+            0.85,
+            0.25,
+            0.9 * percent
+        )
+
+        love.graphics.circle(
+            "line",
+            explosion.x,
+            explosion.y,
+            explosion.radius
+            * (1 - percent * 0.25)
+        )
+    end
+
+    love.graphics.setColor(1, 1, 1)
+end
+
 function Structure:draw()
     if self.structureType == "Mine" then
         self:drawMine()
-
     elseif self.structureType == "CommandPost" then
         self:drawCommandPost()
-
+    elseif self.structureType == "MissileTurret" then
+        self:drawMissileTurret()
     else
         self:drawTurret()
     end

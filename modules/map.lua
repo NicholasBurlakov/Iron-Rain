@@ -38,6 +38,7 @@ function Map:load()
     self.enemiesPerWaveIncrease = 2
 
     self.spawnDelay = 3
+    self.firstWaveSpawnDelay = 0.1
     self.waveBreakDuration = 8
 
     self.startingSupply = 300
@@ -163,7 +164,8 @@ function Map:isLogisticsReady(deployableType)
 
     if deployableType == "Turret"
         or deployableType == "Mine"
-        or deployableType == "CommandPost" then
+        or deployableType == "CommandPost"
+        or deployableType == "MissileTurret" then
         return self.orbitalPodReady
     end
 
@@ -227,6 +229,11 @@ function Map:getPlacementInfo(deployableType)
         return {
             width = 54,
             height = 54
+        }
+    elseif deployableType == "MissileTurret" then
+        return {
+            width = 38,
+            height = 38
         }
     end
 
@@ -562,6 +569,13 @@ function Map:startNextWave()
     self.spawnedEnemies = 0
     self.spawnTimer = 0
     self.waveState = "active"
+
+    -- Wave 1 is a tight formation for missile splash testing.
+    if self.currentWave == 1 then
+        self.currentSpawnDelay = self.firstWaveSpawnDelay
+    else
+        self.currentSpawnDelay = self.spawnDelay
+    end
 end
 
 function Map:getEnemyTypeForWave()
@@ -596,9 +610,29 @@ function Map:spawnEnemy()
 
     local enemyType = self:getEnemyTypeForWave()
 
+    local spawnOffsetX = 0
+    local spawnOffsetY = 0
+
+    -- Tight test formation for missile splash damage.
+    if self.currentWave == 1 then
+        local offsets = {
+            { x = 0,   y = 0 },
+            { x = -4,  y = -8 },
+            { x = -8,  y = 8 },
+            { x = -12, y = -8 }
+        }
+
+        local offset =
+            offsets[self.spawnedEnemies + 1]
+            or { x = 0, y = 0 }
+
+        spawnOffsetX = offset.x
+        spawnOffsetY = offset.y
+    end
+
     local enemy = Enemy.new(
-        start.x,
-        start.y,
+        start.x + spawnOffsetX,
+        start.y + spawnOffsetY,
         enemyType
     )
 
@@ -687,7 +721,7 @@ function Map:update(dt)
 
         if self.spawnTimer <= 0 then
             self:spawnEnemy()
-            self.spawnTimer = self.spawnDelay
+            self.spawnTimer = self.currentSpawnDelay
         end
     end
 
@@ -1018,7 +1052,8 @@ function Map:mousepressed(x, y, button)
                 )
             elseif selectedDeployable == "Turret"
                 or selectedDeployable == "Mine"
-                or selectedDeployable == "CommandPost" then
+                or selectedDeployable == "CommandPost"
+                or selectedDeployable == "MissileTurret" then
                 deployed = self:dropStructure(
                     x,
                     y,

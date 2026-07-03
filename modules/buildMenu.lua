@@ -50,7 +50,16 @@ function BuildMenu.new()
             capacity = 0,
             available = true,
             x = 480
-        }
+        },
+        {
+            name = "MissileTurret",
+            label = "MISSILE TOWER",
+            color = { 1, 0.35, 0.1 },
+            cost = 225,
+            capacity = 3,
+            available = true,
+            x = 595
+        },
     }
 
     return self
@@ -224,7 +233,8 @@ function BuildMenu:isLogisticsReady(
 
     if button.name == "Turret"
         or button.name == "Mine"
-        or button.name == "CommandPost" then
+        or button.name == "CommandPost"
+        or button.name == "MissileTurret" then
         return orbitalPodReady
     end
 
