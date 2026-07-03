@@ -86,11 +86,7 @@ function Map:resetMission()
     self.spawnTimer = 0
     self.totalEnemies = 0
 
-    -- Temporary starting defense.
-    table.insert(
-        self.structures,
-        Structure.new(375, 250, "Turret")
-    )
+
 
     self:startNextWave()
 end
@@ -129,6 +125,21 @@ function Map:getUsedCapacity()
     return totalCapacity
 end
 
+function Map:getEffectiveCommandCapacity()
+    local totalCapacity = self.commandCapacity
+
+    -- Living Command Posts increase the maximum.
+    for _, structure in ipairs(self.structures) do
+        if not structure.dead
+            and structure.capacityBonus ~= nil then
+            totalCapacity =
+                totalCapacity + structure.capacityBonus
+        end
+    end
+
+    return totalCapacity
+end
+
 function Map:getAvailableDropships()
     local busyDropships = 0
 
@@ -151,7 +162,8 @@ function Map:isLogisticsReady(deployableType)
     end
 
     if deployableType == "Turret"
-        or deployableType == "Mine" then
+        or deployableType == "Mine"
+        or deployableType == "CommandPost" then
         return self.orbitalPodReady
     end
 
@@ -210,6 +222,11 @@ function Map:getPlacementInfo(deployableType)
         return {
             width = 22,
             height = 22
+        }
+    elseif deployableType == "CommandPost" then
+        return {
+            width = 54,
+            height = 54
         }
     end
 
@@ -843,7 +860,7 @@ function Map:draw()
     self.buildMenu:draw(
         self.supply,
         self:getUsedCapacity(),
-        self.commandCapacity,
+        self:getEffectiveCommandCapacity(),
         self:getAvailableDropships(),
         self.dropshipFleetSize,
         self.orbitalPodReady,
@@ -935,7 +952,7 @@ function Map:mousepressed(x, y, button)
             y,
             self.supply,
             self:getUsedCapacity(),
-            self.commandCapacity,
+            self:getEffectiveCommandCapacity(),
             self:getAvailableDropships(),
             self.orbitalPodReady
         )
@@ -957,11 +974,18 @@ function Map:mousepressed(x, y, button)
             local cost = self.buildMenu:getSelectedCost()
             local capacityCost = self.buildMenu:getSelectedCapacity()
 
+            local effectiveCapacity =
+                self:getEffectiveCommandCapacity()
+
+            local exceedsCapacity =
+                capacityCost > 0
+                and self:getUsedCapacity() + capacityCost
+                > effectiveCapacity
+
             if cost == nil
                 or capacityCost == nil
                 or self.supply < cost
-                or self:getUsedCapacity() + capacityCost
-                > self.commandCapacity then
+                or exceedsCapacity then
                 self.buildMenu.selected = nil
                 return
             end
@@ -993,7 +1017,8 @@ function Map:mousepressed(x, y, button)
                     capacityCost
                 )
             elseif selectedDeployable == "Turret"
-                or selectedDeployable == "Mine" then
+                or selectedDeployable == "Mine"
+                or selectedDeployable == "CommandPost" then
                 deployed = self:dropStructure(
                     x,
                     y,

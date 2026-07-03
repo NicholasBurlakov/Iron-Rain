@@ -27,6 +27,17 @@ function Structure.new(x, y, structureType)
         self.damage = 120
 
         self.armed = true
+    elseif self.structureType == "CommandPost" then
+        self.width = 54
+        self.height = 54
+        self.radius = 27
+
+        self.capacityCost = 0
+        self.capacityBonus = 4
+        self.targetable = true
+
+        self.maxHealth = 600
+        self.health = self.maxHealth
     else
         self.structureType = "Turret"
 
@@ -156,7 +167,7 @@ end
 function Structure:update(dt, enemies)
     if self.structureType == "Mine" then
         self:updateMine(enemies)
-    else
+    elseif self.structureType == "Turret" then
         self:updateTurret(dt, enemies)
     end
 end
@@ -314,9 +325,72 @@ function Structure:drawMine()
     love.graphics.setColor(1, 1, 1)
 end
 
+function Structure:drawCommandPost()
+    if self.dead then
+        -- Destroyed command post wreck.
+        love.graphics.setColor(0.12, 0.12, 0.12)
+
+        love.graphics.rectangle(
+            "fill",
+            self.x - self.width / 2,
+            self.y - self.height / 2,
+            self.width,
+            self.height
+        )
+
+        love.graphics.setColor(0.45, 0.08, 0.08)
+
+        love.graphics.line(
+            self.x - self.width / 2,
+            self.y - self.height / 2,
+            self.x + self.width / 2,
+            self.y + self.height / 2
+        )
+
+        love.graphics.line(
+            self.x + self.width / 2,
+            self.y - self.height / 2,
+            self.x - self.width / 2,
+            self.y + self.height / 2
+        )
+
+        love.graphics.setColor(1, 1, 1)
+        return
+    end
+
+    -- Active command post.
+    love.graphics.setColor(0.7, 0.3, 1)
+
+    love.graphics.rectangle(
+        "fill",
+        self.x - self.width / 2,
+        self.y - self.height / 2,
+        self.width,
+        self.height
+    )
+
+    love.graphics.setColor(0.9, 0.85, 1)
+
+    love.graphics.rectangle(
+        "fill",
+        self.x - 8,
+        self.y - 8,
+        16,
+        16
+    )
+
+    self:drawHealthBar()
+
+    love.graphics.setColor(1, 1, 1)
+end
+
 function Structure:draw()
     if self.structureType == "Mine" then
         self:drawMine()
+
+    elseif self.structureType == "CommandPost" then
+        self:drawCommandPost()
+
     else
         self:drawTurret()
     end

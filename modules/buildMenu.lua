@@ -41,6 +41,15 @@ function BuildMenu.new()
             capacity = 0,
             available = true,
             x = 365
+        },
+        {
+            name = "CommandPost",
+            label = "CMD POST",
+            color = { 0.7, 0.3, 1 },
+            cost = 250,
+            capacity = 0,
+            available = true,
+            x = 480
         }
     }
 
@@ -68,7 +77,10 @@ function BuildMenu:draw(supply, usedCapacity, commandCapacity, availableDropship
         local available = button.available ~= false
         local alpha = 1
 
-        local hasCapacity = usedCapacity + button.capacity <= commandCapacity
+        local hasCapacity =
+            button.capacity == 0
+            or usedCapacity + button.capacity
+            <= commandCapacity
 
         local logisticsReady =
             self:isLogisticsReady(
@@ -114,7 +126,7 @@ function BuildMenu:draw(supply, usedCapacity, commandCapacity, availableDropship
         love.graphics.setColor(1, 1, 1)
 
         love.graphics.printf(
-            button.name,
+            button.label or button.name,
             button.x,
             screenHeight - 40,
             self.buttonWidth,
@@ -211,7 +223,8 @@ function BuildMenu:isLogisticsReady(
     end
 
     if button.name == "Turret"
-        or button.name == "Mine" then
+        or button.name == "Mine"
+        or button.name == "CommandPost" then
         return orbitalPodReady
     end
 
@@ -233,7 +246,10 @@ function BuildMenu:mousepressed(x, y, supply, usedCapacity, commandCapacity, ava
         if insideButton then
             local available = button.available ~= false
 
-            local hasCapacity = usedCapacity + button.capacity <= commandCapacity
+            local hasCapacity =
+                button.capacity == 0
+                or usedCapacity + button.capacity
+                <= commandCapacity
 
             local logisticsReady =
                 self:isLogisticsReady(
