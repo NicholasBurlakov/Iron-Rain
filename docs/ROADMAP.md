@@ -43,7 +43,7 @@
 
 ## Milestone 6 — Terrain and Cover
 
-* [ ] Terrain zones
+* [x] Terrain zones
 * [ ] Mud and snow movement penalties
 * [ ] Cover and defensive bonuses
 * [ ] Fortified positions
