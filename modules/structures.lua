@@ -113,7 +113,7 @@ function Structure:findClosestEnemy(enemies)
     return closestEnemy
 end
 
-function Structure:updateTurret(dt, enemies, terrain)
+function Structure:updateTurret(dt, enemies, terrain, combatText)
     -- Let already-fired projectiles keep traveling.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
@@ -145,7 +145,8 @@ function Structure:updateTurret(dt, enemies, terrain)
                 nil,
                 nil,
                 nil,
-                terrain
+                terrain,
+                combatText
             )
         )
 
@@ -156,7 +157,8 @@ end
 function Structure:updateMissileTurret(
     dt,
     enemies,
-    terrain
+    terrain,
+    combatText
 )
     -- Fade temporary blast visuals.
     for i = #self.explosions, 1, -1 do
@@ -202,15 +204,28 @@ function Structure:updateMissileTurret(
                 function(hitTarget, impactX, impactY)
                     if not hitTarget.dead then
                         local directDamage = self.directDamage
+                        local coverReduced = false
 
                         if terrain ~= nil then
-                            directDamage = terrain:modifyDamage(
-                                hitTarget,
-                                self.directDamage
-                            )
+                            directDamage, coverReduced =
+                                terrain:modifyDamage(
+                                    hitTarget,
+                                    self.directDamage
+                                )
                         end
 
-                        hitTarget:takeDamage(directDamage)
+                        if combatText ~= nil then
+                            combatText:applyDamage(
+                                hitTarget,
+                                directDamage,
+                                {
+                                    damageType = "explosion",
+                                    coverReduced = coverReduced
+                                }
+                            )
+                        else
+                            hitTarget:takeDamage(directDamage)
+                        end
                     end
 
                     for _, enemy in ipairs(enemies) do
@@ -224,15 +239,28 @@ function Structure:updateMissileTurret(
 
                             if distance <= self.splashRadius then
                                 local splashDamage = self.splashDamage
+                                local coverReduced = false
 
                                 if terrain ~= nil then
-                                    splashDamage = terrain:modifyDamage(
-                                        enemy,
-                                        self.splashDamage
-                                    )
+                                    splashDamage, coverReduced =
+                                        terrain:modifyDamage(
+                                            enemy,
+                                            self.splashDamage
+                                        )
                                 end
 
-                                enemy:takeDamage(splashDamage)
+                                if combatText ~= nil then
+                                    combatText:applyDamage(
+                                        enemy,
+                                        splashDamage,
+                                        {
+                                            damageType = "explosion",
+                                            coverReduced = coverReduced
+                                        }
+                                    )
+                                else
+                                    enemy:takeDamage(splashDamage)
+                                end
                             end
                         end
                     end
@@ -259,7 +287,7 @@ function Structure:updateMissileTurret(
     end
 end
 
-function Structure:updateMine(enemies, terrain)
+function Structure:updateMine(enemies, terrain, combatText)
     if self.dead or not self.armed then
         return
     end
@@ -271,14 +299,14 @@ function Structure:updateMine(enemies, terrain)
             local distance = math.sqrt(dx * dx + dy * dy)
 
             if distance <= self.triggerRadius then
-                self:explode(enemies, terrain)
+                self:explode(enemies, terrain, combatText)
                 return
             end
         end
     end
 end
 
-function Structure:explode(enemies, terrain)
+function Structure:explode(enemies, terrain, combatText)
     if self.dead then
         return
     end
@@ -291,15 +319,28 @@ function Structure:explode(enemies, terrain)
 
             if distance <= self.blastRadius then
                 local finalDamage = self.damage
+                local coverReduced = false
 
                 if terrain ~= nil then
-                    finalDamage = terrain:modifyDamage(
-                        enemy,
-                        self.damage
-                    )
+                    finalDamage, coverReduced =
+                        terrain:modifyDamage(
+                            enemy,
+                            self.damage
+                        )
                 end
 
-                enemy:takeDamage(finalDamage)
+                if combatText ~= nil then
+                    combatText:applyDamage(
+                        enemy,
+                        finalDamage,
+                        {
+                            damageType = "explosion",
+                            coverReduced = coverReduced
+                        }
+                    )
+                else
+                    enemy:takeDamage(finalDamage)
+                end
             end
         end
     end
@@ -308,13 +349,32 @@ function Structure:explode(enemies, terrain)
     self.dead = true
 end
 
-function Structure:update(dt, enemies, terrain)
+function Structure:update(
+    dt,
+    enemies,
+    terrain,
+    combatText
+)
     if self.structureType == "Mine" then
-        self:updateMine(enemies, terrain)
+        self:updateMine(
+            enemies,
+            terrain,
+            combatText
+        )
     elseif self.structureType == "MissileTurret" then
-        self:updateMissileTurret(dt, enemies, terrain)
+        self:updateMissileTurret(
+            dt,
+            enemies,
+            terrain,
+            combatText
+        )
     elseif self.structureType == "Turret" then
-        self:updateTurret(dt, enemies, terrain)
+        self:updateTurret(
+            dt,
+            enemies,
+            terrain,
+            combatText
+        )
     end
 end
 

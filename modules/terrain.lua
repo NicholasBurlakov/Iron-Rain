@@ -65,7 +65,7 @@ function Terrain:modifyDamage(target, damage)
 
     if zone == nil
         or zone.minDamageReduction == nil then
-        return damage
+        return damage, false
     end
 
     local minimumPercent = math.floor(
@@ -76,17 +76,18 @@ function Terrain:modifyDamage(target, damage)
         zone.maxDamageReduction * 100
     )
 
-    -- Roll a new cover reduction for every direct hit.
     local reduction =
         love.math.random(
             minimumPercent,
             maximumPercent
         ) / 100
 
-    return math.max(
+    local reducedDamage = math.max(
         1,
         math.floor(damage * (1 - reduction) + 0.5)
     )
+
+    return reducedDamage, true
 end
 
 function Terrain:draw()

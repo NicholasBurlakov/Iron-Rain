@@ -9,7 +9,8 @@ function Projectile.new(
     onImpact,
     color,
     radius,
-    terrain
+    terrain,
+    combatText
 )
     local self = setmetatable({}, Projectile)
 
@@ -20,6 +21,7 @@ function Projectile.new(
     self.damage = damage or 20
     self.onImpact = onImpact
     self.terrain = terrain
+    self.combatText = combatText
 
     self.speed = 350
     self.radius = radius or 5
@@ -56,16 +58,28 @@ function Projectile:update(dt)
             )
         else
             local finalDamage = self.damage
+            local coverReduced = false
 
-            -- Cover affects direct projectile hits only.
             if self.terrain ~= nil then
-                finalDamage = self.terrain:modifyDamage(
-                    self.target,
-                    self.damage
-                )
+                finalDamage, coverReduced =
+                    self.terrain:modifyDamage(
+                        self.target,
+                        self.damage
+                    )
             end
 
-            self.target:takeDamage(finalDamage)
+            if self.combatText ~= nil then
+                self.combatText:applyDamage(
+                    self.target,
+                    finalDamage,
+                    {
+                        damageType = "direct",
+                        coverReduced = coverReduced
+                    }
+                )
+            else
+                self.target:takeDamage(finalDamage)
+            end
         end
 
         self.dead = true

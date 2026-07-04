@@ -94,7 +94,12 @@ function Unit:findClosestEnemy(enemies)
     return closestEnemy
 end
 
-function Unit:update(dt, enemies, terrain)
+function Unit:update(
+    dt,
+    enemies,
+    terrain,
+    combatText
+)
     -- Update active projectiles.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
@@ -158,7 +163,8 @@ function Unit:update(dt, enemies, terrain)
                 nil,
                 nil,
                 nil,
-                terrain
+                terrain,
+                combatText
             )
         )
 

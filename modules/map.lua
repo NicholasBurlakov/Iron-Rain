@@ -6,6 +6,7 @@ local Dropship = require("modules.dropship")
 local OrbitalPod = require("modules.orbitalPod")
 local Tutorial = require("modules.tutorial")
 local Terrain = require("modules.terrain")
+local CombatText = require("modules.combatText")
 
 local Map = {}
 
@@ -52,12 +53,13 @@ function Map:load()
     self.buildMenu = BuildMenu.new()
     self.tutorial = Tutorial.new()
     self.terrain = Terrain.new()
-
+    self.combatText = CombatText.new()
     self:resetMission()
 end
 
 function Map:resetMission()
     -- Reset battlefield state.
+    self.combatText:clear()
     self.enemies = {}
     self.units = {}
     self.structures = {}
@@ -734,7 +736,8 @@ function Map:update(dt)
             self.waypoints,
             self.units,
             self.structures,
-            self.terrain
+            self.terrain,
+            self.combatText
         )
 
         if enemy.reachedEnd then
@@ -771,7 +774,8 @@ function Map:update(dt)
         structure:update(
             dt,
             self.enemies,
-            self.terrain
+            self.terrain,
+            self.combatText
         )
     end
 
@@ -779,9 +783,13 @@ function Map:update(dt)
         unit:update(
             dt,
             self.enemies,
-            self.terrain
+            self.terrain,
+            self.combatText
         )
     end
+
+    -- Update floating combat feedback.
+    self.combatText:update(dt)
     self:removeDeadSelectedUnits()
 
     -- Advance to the next wave or finish the mission.
@@ -854,6 +862,9 @@ function Map:draw()
     for _, pod in ipairs(self.orbitalPods) do
         pod:draw()
     end
+
+    -- Draw floating combat feedback above battlefield objects.
+    self.combatText:draw()
 
     -- Draw selected unit outlines.
     for _, unit in ipairs(self.selectedUnits) do

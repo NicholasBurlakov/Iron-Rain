@@ -137,7 +137,7 @@ function Enemy:takeDamage(amount)
     end
 end
 
-function Enemy:update(dt, waypoints, units, structures, terrain)
+function Enemy:update(dt, waypoints, units, structures, terrain, combatText)
     -- Update active projectiles.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
@@ -200,7 +200,8 @@ function Enemy:update(dt, waypoints, units, structures, terrain)
                 nil,
                 nil,
                 nil,
-                terrain
+                terrain,
+                combatText
             )
         )
 
