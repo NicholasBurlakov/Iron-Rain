@@ -15,6 +15,7 @@ function BuildMenu.new()
     self.buttons = {
         {
             name = "Rifle",
+            description = "Fast, flexible infantry for reliable single-target damage.",
             color = { 0.2, 0.6, 1 },
             cost = 50,
             capacity = 1,
@@ -22,6 +23,7 @@ function BuildMenu.new()
         },
         {
             name = "Heavy",
+            description = "Slow, durable infantry with strong close-range fire.",
             color = { 0.3, 1, 0.3 },
             cost = 100,
             capacity = 2,
@@ -29,6 +31,7 @@ function BuildMenu.new()
         },
         {
             name = "Turret",
+            description = "Rapid-fire defense built to eliminate single targets.",
             color = { 1, 0.3, 0.3 },
             cost = 150,
             capacity = 2,
@@ -36,6 +39,7 @@ function BuildMenu.new()
         },
         {
             name = "Mine",
+            description = "A hidden explosive that detonates when enemies move nearby.",
             color = { 1, 1, 0.3 },
             cost = 125,
             capacity = 0,
@@ -44,6 +48,7 @@ function BuildMenu.new()
         },
         {
             name = "CommandPost",
+            description = "Adds +4 Command Capacity while it remains operational.",
             label = "CMD POST",
             color = { 0.7, 0.3, 1 },
             cost = 250,
@@ -53,6 +58,7 @@ function BuildMenu.new()
         },
         {
             name = "MissileTurret",
+            description = "Slow-firing rockets deal heavy splash damage to grouped enemies.",
             label = "MISSILE TOWER",
             color = { 1, 0.35, 0.1 },
             cost = 225,
@@ -199,6 +205,110 @@ function BuildMenu:draw(supply, usedCapacity, commandCapacity, availableDropship
         statusX,
         menuTop + 73
     )
+
+    -- Show a description above the card being hovered.
+    local mouseX, mouseY = love.mouse.getPosition()
+
+    for _, button in ipairs(self.buttons) do
+        local hoveringButton =
+            mouseX >= button.x
+            and mouseX <= button.x + self.buttonWidth
+            and mouseY >= screenHeight - self.height + self.buttonTopPadding
+            and mouseY <= screenHeight - self.height
+            + self.buttonTopPadding
+            + self.buttonHeight
+
+        if hoveringButton
+            and button.description ~= nil then
+            self:drawTooltip(
+                button,
+                screenWidth,
+                screenHeight
+            )
+
+            break
+        end
+    end
+end
+
+function BuildMenu:drawTooltip(
+    button,
+    screenWidth,
+    screenHeight
+)
+    local padding = 10
+    local tooltipWidth = 280
+    local font = love.graphics.getFont()
+
+    local _, lines = font:getWrap(
+        button.description,
+        tooltipWidth - padding * 2
+    )
+
+    local tooltipHeight =
+        #lines * font:getHeight()
+        + padding * 2
+
+    -- Center the tooltip over its card.
+    local tooltipX =
+        button.x
+        + self.buttonWidth / 2
+        - tooltipWidth / 2
+
+    -- Keep the tooltip on screen.
+    tooltipX = math.max(
+        10,
+        math.min(
+            tooltipX,
+            screenWidth - tooltipWidth - 10
+        )
+    )
+
+    local tooltipY =
+        screenHeight
+        - self.height
+        - tooltipHeight
+        - 10
+
+    -- Tooltip background.
+    love.graphics.setColor(0.04, 0.04, 0.06, 0.94)
+
+    love.graphics.rectangle(
+        "fill",
+        tooltipX,
+        tooltipY,
+        tooltipWidth,
+        tooltipHeight
+    )
+
+    -- Tooltip outline.
+    love.graphics.setColor(
+        button.color[1],
+        button.color[2],
+        button.color[3],
+        1
+    )
+
+    love.graphics.rectangle(
+        "line",
+        tooltipX,
+        tooltipY,
+        tooltipWidth,
+        tooltipHeight
+    )
+
+    -- Tooltip text.
+    love.graphics.setColor(1, 1, 1)
+
+    love.graphics.printf(
+        button.description,
+        tooltipX + padding,
+        tooltipY + padding,
+        tooltipWidth - padding * 2,
+        "left"
+    )
+
+    love.graphics.setColor(1, 1, 1)
 end
 
 function BuildMenu:getSelectedCost()
