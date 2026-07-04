@@ -71,7 +71,7 @@
 
 ## Milestone 7 — Combat Feedback and Readability
 
-* [ ] Floating damage numbers
+* [x] Floating damage numbers
 * [ ] Cover-reduced damage feedback
 * [ ] Explosion damage feedback
 * [ ] Unit and structure destruction feedback
