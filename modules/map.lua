@@ -34,14 +34,102 @@ function Map:load()
 
     }
 
-    -- Mission settings.
-    self.totalWaves = 3
-    self.baseEnemiesPerWave = 4
-    self.enemiesPerWaveIncrease = 2
+    -- All enemies stay slower than their normal base speed.
+    self.enemySpeedMultiplier = 0.72
 
-    self.spawnDelay = 3
-    self.firstWaveSpawnDelay = 0.1
-    self.waveBreakDuration = 8
+    -- Difficulty increases through more enemies and mixed formations.
+    -- Enemy stats do not increase between waves.
+    self.wavePlans = {
+        {
+            name = "Probe Force",
+            enemies = {
+                "grunt",
+                "grunt",
+                "grunt",
+                "grunt",
+                "grunt"
+            },
+            spawnDelay = 0.22
+        },
+        {
+            name = "Scout Screen",
+            enemies = {
+                "grunt",
+                "grunt",
+                "scout",
+                "grunt",
+                "grunt",
+                "scout",
+                "grunt",
+                "grunt"
+            },
+            spawnDelay = 0.65
+        },
+        {
+            name = "Armored Push",
+            enemies = {
+                "grunt",
+                "scout",
+                "grunt",
+                "heavy",
+                "grunt",
+                "scout",
+                "grunt",
+                "heavy",
+                "grunt",
+                "grunt",
+                "scout"
+            },
+            spawnDelay = 0.60
+        },
+        {
+            name = "Mixed Assault",
+            enemies = {
+                "scout",
+                "grunt",
+                "heavy",
+                "grunt",
+                "scout",
+                "grunt",
+                "heavy",
+                "grunt",
+                "scout",
+                "grunt",
+                "heavy",
+                "grunt",
+                "scout",
+                "grunt"
+            },
+            spawnDelay = 0.52
+        },
+        {
+            name = "Final Push",
+            enemies = {
+                "grunt",
+                "scout",
+                "heavy",
+                "grunt",
+                "grunt",
+                "heavy",
+                "scout",
+                "grunt",
+                "heavy",
+                "grunt",
+                "scout",
+                "grunt",
+                "heavy",
+                "grunt",
+                "scout",
+                "heavy",
+                "grunt",
+                "grunt"
+            },
+            spawnDelay = 0.48
+        }
+    }
+
+    self.totalWaves = #self.wavePlans
+    self.waveBreakDuration = 10
 
     self.startingSupply = 300
     self.startingCommandCapacity = 12
@@ -566,68 +654,45 @@ end
 function Map:startNextWave()
     self.currentWave = self.currentWave + 1
 
+    self.currentWavePlan =
+        self.wavePlans[self.currentWave]
+
     self.totalEnemies =
-        self.baseEnemiesPerWave
-        + (self.currentWave - 1) * self.enemiesPerWaveIncrease
+        #self.currentWavePlan.enemies
+
+    self.currentSpawnDelay =
+        self.currentWavePlan.spawnDelay
 
     self.spawnedEnemies = 0
     self.spawnTimer = 0
     self.waveState = "active"
-
-    -- Wave 1 is a tight formation for missile splash testing.
-    if self.currentWave == 1 then
-        self.currentSpawnDelay = self.firstWaveSpawnDelay
-    else
-        self.currentSpawnDelay = self.spawnDelay
-    end
 end
 
 function Map:getEnemyTypeForWave()
     local enemyNumber = self.spawnedEnemies + 1
 
-    if self.currentWave == 1 then
-        return "grunt"
-    end
-
-    if self.currentWave == 2 then
-        if enemyNumber % 3 == 0 then
-            return "scout"
-        end
-
-        return "grunt"
-    end
-
-    -- Wave 3 and later.
-    if enemyNumber % 4 == 0 then
-        return "heavy"
-    end
-
-    if enemyNumber % 2 == 0 then
-        return "scout"
-    end
-
-    return "grunt"
+    return self.currentWavePlan.enemies[enemyNumber]
 end
 
 function Map:spawnEnemy()
     local start = self.waypoints[1]
-
     local enemyType = self:getEnemyTypeForWave()
 
     local spawnOffsetX = 0
     local spawnOffsetY = 0
 
-    -- Tight test formation for missile splash damage.
+    -- Wave 1 enters in a tight formation for splash-damage testing.
     if self.currentWave == 1 then
-        local offsets = {
+        local formationOffsets = {
             { x = 0,   y = 0 },
-            { x = -4,  y = -8 },
-            { x = -8,  y = 8 },
-            { x = -12, y = -8 }
+            { x = -8,  y = -6 },
+            { x = -14, y = 7 },
+            { x = -22, y = -7 },
+            { x = -30, y = 5 }
         }
 
         local offset =
-            offsets[self.spawnedEnemies + 1]
+            formationOffsets[self.spawnedEnemies + 1]
             or { x = 0, y = 0 }
 
         spawnOffsetX = offset.x
@@ -640,18 +705,16 @@ function Map:spawnEnemy()
         enemyType
     )
 
-    -- Scale enemy strength by wave.
     enemy.wave = self.currentWave
 
-    local healthMultiplier = 1 + (self.currentWave - 1) * 0.35
-
-    enemy.maxHealth = math.floor(
-        enemy.maxHealth * healthMultiplier
+    -- Every wave uses the same reduced speed.
+    -- Enemy health, damage, and other stats remain unchanged.
+    enemy.speed = math.max(
+        20,
+        math.floor(
+            enemy.speed * self.enemySpeedMultiplier
+        )
     )
-
-    enemy.health = enemy.maxHealth
-
-    enemy.speed = enemy.speed + (self.currentWave - 1) * 10
 
     table.insert(self.enemies, enemy)
 
@@ -716,10 +779,9 @@ function Map:update(dt)
         if self.waveTimer <= 0 then
             self:startNextWave()
         end
-    end
 
-    -- Spawn enemies during an active wave.
-    if self.waveState == "active"
+        -- Spawn enemies during an active wave.
+    elseif self.waveState == "active"
         and self.spawnedEnemies < self.totalEnemies then
         self.spawnTimer = self.spawnTimer - dt
 
