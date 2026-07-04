@@ -47,6 +47,12 @@ function Unit.new(x, y, unitType)
     self.extracted = false
     self.rotation = 0
 
+    -- Corpse timing.
+    self.corpseAge = 0
+    self.corpseFadeDelay = 10
+    self.corpseFadeDuration = 2
+    self.removeCorpse = false
+
     -- Basic combat state.
     self.cooldown = 0
     self.projectiles = {}
@@ -111,8 +117,18 @@ function Unit:update(
         end
     end
 
-    if self.dead
-        or self.isExtracting
+    if self.dead then
+        self.corpseAge = self.corpseAge + dt
+
+        if self.corpseAge >=
+            self.corpseFadeDelay + self.corpseFadeDuration then
+            self.removeCorpse = true
+        end
+
+        return
+    end
+
+    if self.isExtracting
         or self.extracted then
         return
     end
@@ -212,6 +228,22 @@ function Unit:containsPoint(x, y)
         and y <= self.y + self.height / 2
 end
 
+function Unit:getCorpseAlpha()
+    if not self.dead then
+        return 1
+    end
+
+    if self.corpseAge <= self.corpseFadeDelay then
+        return 1
+    end
+
+    local fadeProgress =
+        (self.corpseAge - self.corpseFadeDelay)
+        / self.corpseFadeDuration
+
+    return math.max(0, 1 - fadeProgress)
+end
+
 function Unit:draw()
     -- Hide extracted units.
     if self.extracted then
@@ -219,7 +251,14 @@ function Unit:draw()
     end
 
     -- Draw the unit body.
-    love.graphics.setColor(self.color)
+    local alpha = self:getCorpseAlpha()
+
+    love.graphics.setColor(
+        self.color[1],
+        self.color[2],
+        self.color[3],
+        alpha
+    )
 
     love.graphics.push()
     love.graphics.translate(self.x, self.y)

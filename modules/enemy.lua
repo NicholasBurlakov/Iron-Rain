@@ -59,6 +59,12 @@ function Enemy.new(x, y, enemyType)
     self.rotation = 0 -- Body falls on death via sprite rotation
     self.reachedEnd = false
 
+    -- Corpse timing.
+    self.corpseAge = 0
+    self.corpseFadeDelay = 10
+    self.corpseFadeDuration = 2
+    self.removeCorpse = false
+
     -- Combat state.
     self.cooldown = 0
     self.projectiles = {}
@@ -129,11 +135,8 @@ function Enemy:takeDamage(amount)
         self.health = 0
         self.dead = true
 
-        if love.math.random() < 0.5 then
-            self.rotation = math.rad(90)
-        else
-            self.rotation = math.rad(-90)
-        end
+        -- Lay the corpse on its side.
+        self.rotation = self.rotation + math.pi / 2
     end
 end
 
@@ -150,6 +153,13 @@ function Enemy:update(dt, waypoints, units, structures, terrain, combatText)
     end
 
     if self.dead then
+        self.corpseAge = self.corpseAge + dt
+
+        if self.corpseAge >=
+            self.corpseFadeDelay + self.corpseFadeDuration then
+            self.removeCorpse = true
+        end
+
         return
     end
 
@@ -209,9 +219,27 @@ function Enemy:update(dt, waypoints, units, structures, terrain, combatText)
     end
 end
 
+function Enemy:getCorpseAlpha()
+    if not self.dead then
+        return 1
+    end
+
+    if self.corpseAge <= self.corpseFadeDelay then
+        return 1
+    end
+
+    local fadeProgress =
+        (self.corpseAge - self.corpseFadeDelay)
+        / self.corpseFadeDuration
+
+    return math.max(0, 1 - fadeProgress)
+end
+
 function Enemy:drawBody()
+    local alpha = self:getCorpseAlpha()
+
     if self.usesSprite then
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setColor(1, 1, 1, alpha)
 
         love.graphics.draw(
             self.sprite,
@@ -224,7 +252,12 @@ function Enemy:drawBody()
             self.sprite:getHeight() / 2
         )
     else
-        love.graphics.setColor(self.color)
+        love.graphics.setColor(
+            self.color[1],
+            self.color[2],
+            self.color[3],
+            alpha
+        )
 
         love.graphics.push()
         love.graphics.translate(self.x, self.y)
@@ -246,7 +279,9 @@ function Enemy:draw()
     -- Draw the enemy body.
     self:drawBody()
 
-    -- Health Bar
+    -- Health bar fades alongside the corpse.
+    local healthBarAlpha = self:getCorpseAlpha()
+
     local barWidth = math.max(32, self.width + 6)
     local barHeight = 4
 
@@ -255,8 +290,8 @@ function Enemy:draw()
 
     local healthPercent = self.health / self.maxHealth
 
-    -- Lost health (red)
-    love.graphics.setColor(1, 0, 0)
+    -- Lost health.
+    love.graphics.setColor(1, 0, 0, healthBarAlpha)
 
     love.graphics.rectangle(
         "fill",
@@ -266,8 +301,8 @@ function Enemy:draw()
         barHeight
     )
 
-    -- Remaining health (green)
-    love.graphics.setColor(0, 1, 0)
+    -- Remaining health.
+    love.graphics.setColor(0, 1, 0, healthBarAlpha)
 
     love.graphics.rectangle(
         "fill",
@@ -277,8 +312,8 @@ function Enemy:draw()
         barHeight
     )
 
-    -- Outline
-    love.graphics.setColor(0, 0, 0)
+    -- Health-bar outline.
+    love.graphics.setColor(0, 0, 0, healthBarAlpha)
 
     love.graphics.rectangle(
         "line",

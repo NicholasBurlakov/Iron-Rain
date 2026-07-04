@@ -808,6 +808,14 @@ function Map:update(dt)
         end
     end
 
+    -- Remove enemy corpses after their fade finishes.
+    for i = #self.enemies, 1, -1 do
+        if self.enemies[i].removeCorpse then
+            table.remove(self.enemies, i)
+        end
+    end
+
+
     -- Update incoming reinforcements.
     for i = #self.dropships, 1, -1 do
         local dropship = self.dropships[i]
@@ -850,9 +858,17 @@ function Map:update(dt)
         )
     end
 
+    -- Remove player-unit corpses after their fade finishes.
+    for i = #self.units, 1, -1 do
+        if self.units[i].removeCorpse then
+            table.remove(self.units, i)
+        end
+    end
+
+    self:removeDeadSelectedUnits()
+
     -- Update floating combat feedback.
     self.combatText:update(dt)
-    self:removeDeadSelectedUnits()
 
     -- Advance to the next wave or finish the mission.
     if self.waveState == "active"
