@@ -1,6 +1,6 @@
 ## Development
 
-See [the roadmap](docs/ROADMAP.md) for current progress and planned features.
+See [the roadmap](ROADMAP.md) for current progress and planned features.
 
 ## Core Gameplay
 
@@ -16,9 +16,9 @@ Battles revolve around controlling territory, reinforcing the front line, and ma
 
 Each level begins with the map divided into:
 
-* Player-controlled territory
-* Neutral territory (optional)
-* Enemy-controlled territory
+- Player-controlled territory
+- Neutral territory (optional)
+- Enemy-controlled territory
 
 Only territory under a faction's control can be used as a deployment zone.
 
@@ -40,10 +40,10 @@ Every deployment comes from orbit.
 
 Examples:
 
-* Infantry arrive in drop pods.
-* Squads arrive in dropships.
-* Heavy vehicles are airlifted in.
-* Titans require specialized deployment.
+- Infantry arrive in drop pods.
+- Squads arrive in dropships.
+- Heavy vehicles are airlifted in.
+- Titans require specialized deployment.
 
 This creates anticipation and reinforces the futuristic military theme.
 
@@ -65,12 +65,12 @@ Capturing strategic objectives increases Supply generation.
 
 Everything costs Supply:
 
-* Infantry
-* Vehicles
-* Defensive structures
-* Mines
-* Air support
-* Titans
+- Infantry
+- Vehicles
+- Defensive structures
+- Mines
+- Air support
+- Titans
 
 The player must constantly choose how to spend limited Supply.
 
@@ -105,9 +105,9 @@ Titan          10
 
 Players can increase capacity by:
 
-* Capturing command posts
-* Building communication centers
-* Permanent campaign upgrades
+- Capturing command posts
+- Building communication centers
+- Permanent campaign upgrades
 
 ---
 
@@ -119,12 +119,12 @@ War Credits are used outside missions for permanent progression.
 
 Examples:
 
-* Unlock new units
-* Unlock new structures
-* Upgrade weapons
-* Increase Command Capacity
-* Improve dropships
-* Unlock support abilities
+- Unlock new units
+- Unlock new structures
+- Upgrade weapons
+- Increase Command Capacity
+- Improve dropships
+- Unlock support abilities
 
 ---
 
@@ -134,14 +134,14 @@ Units are mobile combat forces.
 
 Examples:
 
-* Rifle Squad
-* Heavy Infantry
-* Engineer
-* Sniper
-* Medic
-* Recon
-* Mechs
-* Titans
+- Rifle Squad
+- Heavy Infantry
+- Engineer
+- Sniper
+- Medic
+- Recon
+- Mechs
+- Titans
 
 Units can move, fight, capture territory, and defend objectives.
 
@@ -159,13 +159,13 @@ Structures are stationary.
 
 Examples:
 
-* Machine Gun Turret
-* Missile Turret
-* Bunker
-* Shield Generator
-* Minefield
-* Radar Station
-* Anti-Air Battery
+- Machine Gun Turret
+- Missile Turret
+- Bunker
+- Shield Generator
+- Minefield
+- Radar Station
+- Anti-Air Battery
 
 Structures strengthen the front line and help secure captured territory.
 
@@ -179,24 +179,24 @@ Examples:
 
 Open Ground
 
-* Normal movement
-* No defensive bonus
+- Normal movement
+- No defensive bonus
 
 Sandbags
 
-* Increased defense
+- Increased defense
 
 Concrete
 
-* High defensive bonus
+- High defensive bonus
 
 Mud
 
-* Movement penalty
+- Movement penalty
 
 Snow
 
-* Movement penalty
+- Movement penalty
 
 Terrain should influence both player and enemy decisions.
 
@@ -208,12 +208,12 @@ The player gains access to powerful support abilities.
 
 Examples:
 
-* Orbital Strike
-* Missile Barrage
-* EMP
-* Smoke Screen
-* Supply Drop
-* Reinforcements
+- Orbital Strike
+- Missile Barrage
+- EMP
+- Smoke Screen
+- Supply Drop
+- Reinforcements
 
 These abilities cost Supply and/or operate on cooldown.
 
@@ -227,10 +227,10 @@ Territory is one of the game's defining mechanics.
 
 Capturing territory:
 
-* Expands deployment zones
-* Increases Supply generation
-* Unlocks objectives
-* Provides strategic advantages
+- Expands deployment zones
+- Increases Supply generation
+- Unlocks objectives
+- Provides strategic advantages
 
 Losing territory has the opposite effect.
 
@@ -244,10 +244,10 @@ Players complete missions on different planets and battlefields.
 
 Mission rewards include:
 
-* War Credits
-* New technology
-* New units
-* Story progression
+- War Credits
+- New technology
+- New units
+- Story progression
 
 As the campaign advances, battles become larger in scale.
 
@@ -263,6 +263,6 @@ Choosing one option means giving up another.
 
 Examples:
 
-* Deploy a Titan or several infantry squads.
-* Build fortifications or save Supply for an orbital strike.
-* Capture an objective or defend existing territory.
+- Deploy a Titan or several infantry squads.
+- Build fortifications or save Supply for an orbital strike.
+- Capture an objective or defend existing territory.

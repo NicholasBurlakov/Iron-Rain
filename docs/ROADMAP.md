@@ -76,7 +76,7 @@
 - [x] Explosion damage feedback
 - [x] Unit and structure destruction feedback
 - [x] Fading health bars for dead enemies
-- [ ] Improved targeting indicators
+- [x] Improved targeting indicators
 - [ ] Better selection and movement feedback
 - [ ] Unit status indicators
 - [ ] Damage-number stacking or spacing improvements
@@ -86,7 +86,7 @@
 - [x] Grunt — standard infantry
 - [x] Scout — fast, fragile unit
 - [x] Heavy — slow, durable unit
-- [ ] Siege Walker
+- [x] Siege Walker
 - [ ] Additional specialist enemies
 - [ ] Enemy visual and attack distinctions
 - [ ] Better enemy target-priority behavior
