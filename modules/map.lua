@@ -41,15 +41,15 @@ function Map:load()
     -- Enemy stats do not increase between waves.
     self.wavePlans = {
         {
-            name = "Probe Force",
+            name = "Siege Test",
             enemies = {
                 "grunt",
                 "grunt",
-                "grunt",
+                "siege",
                 "grunt",
                 "grunt"
             },
-            spawnDelay = 0.22
+            spawnDelay = 0.45
         },
         {
             name = "Scout Screen",
@@ -83,12 +83,13 @@ function Map:load()
             spawnDelay = 0.60
         },
         {
-            name = "Mixed Assault",
+            name = "First Siege Assault",
             enemies = {
                 "scout",
                 "grunt",
                 "heavy",
                 "grunt",
+                "siege",
                 "scout",
                 "grunt",
                 "heavy",
@@ -103,17 +104,19 @@ function Map:load()
             spawnDelay = 0.52
         },
         {
-            name = "Final Push",
+            name = "Final Siege Push",
             enemies = {
                 "grunt",
                 "scout",
                 "heavy",
                 "grunt",
+                "siege",
                 "grunt",
                 "heavy",
                 "scout",
                 "grunt",
                 "heavy",
+                "siege",
                 "grunt",
                 "scout",
                 "grunt",

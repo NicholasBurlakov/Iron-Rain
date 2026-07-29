@@ -36,6 +36,17 @@ function Enemy.new(x, y, enemyType)
         self.height = 38
         self.color = { 1, 0.2, 0.2 }
         self.usesSprite = false
+    elseif self.enemyType == "siege" then
+        self.maxHealth = 420
+        self.speed = 38
+        self.radius = 20
+        self.range = 260
+        self.damage = 55
+        self.fireRate = 0.35
+        self.width = 34
+        self.height = 46
+        self.color = { 0.45, 0.25, 0.75 }
+        self.usesSprite = false
     else
         self.enemyType = "grunt"
         self.maxHealth = 100
@@ -113,8 +124,71 @@ function Enemy:findClosestStructure(structures)
     return closestStructure
 end
 
+function Enemy:getStructurePriority(structure)
+    if structure.structureType == "CommandPost" then
+        return 1
+    end
+
+    if structure.structureType == "MissileTurret" then
+        return 2
+    end
+
+    if structure.structureType == "Turret" then
+        return 3
+    end
+
+    return 4
+end
+
+function Enemy:findBestSiegeStructure(structures)
+    local bestStructure = nil
+    local bestPriority = math.huge
+    local bestDistance = math.huge
+
+    for _, structure in ipairs(structures) do
+        if not structure.dead
+            and structure.targetable ~= false then
+            local dx = structure.x - self.x
+            local dy = structure.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range then
+                local priority =
+                    self:getStructurePriority(structure)
+
+                local betterPriority =
+                    priority < bestPriority
+
+                local samePriorityButCloser =
+                    priority == bestPriority
+                    and distance < bestDistance
+
+                if betterPriority or samePriorityButCloser then
+                    bestStructure = structure
+                    bestPriority = priority
+                    bestDistance = distance
+                end
+            end
+        end
+    end
+
+    return bestStructure
+end
+
 function Enemy:findTarget(units, structures)
-    -- Infantry always has priority over structures.
+    -- Siege Walkers are structure hunters.
+    if self.enemyType == "siege" then
+        local structureTarget =
+            self:findBestSiegeStructure(structures)
+
+        if structureTarget ~= nil then
+            return structureTarget
+        end
+
+        return self:findClosestUnit(units)
+    end
+
+    -- Normal enemies prioritize infantry first.
     local unitTarget = self:findClosestUnit(units)
 
     if unitTarget ~= nil then
