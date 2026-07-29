@@ -11,6 +11,8 @@ function Structure.new(x, y, structureType)
     self.structureType = structureType or "Turret"
 
     self.projectiles = {}
+    self.currentTarget = nil
+
     self.dead = false
     self.exploded = false
 
@@ -126,12 +128,14 @@ function Structure:updateTurret(dt, enemies, terrain, combatText)
     end
 
     if self.dead then
+        self.currentTarget = nil
         return
     end
 
     self.cooldown = self.cooldown - dt
 
     local target = self:findClosestEnemy(enemies)
+    self.currentTarget = target
 
     if target ~= nil
         and self.cooldown <= 0 then
@@ -183,12 +187,14 @@ function Structure:updateMissileTurret(
     end
 
     if self.dead then
+        self.currentTarget = nil
         return
     end
 
     self.cooldown = self.cooldown - dt
 
     local target = self:findClosestEnemy(enemies)
+    self.currentTarget = target
 
     if target ~= nil
         and self.cooldown <= 0 then
@@ -418,6 +424,37 @@ function Structure:drawHealthBar()
         barWidth,
         barHeight
     )
+end
+
+function Structure:drawTargetIndicator()
+    if self.dead
+        or self.currentTarget == nil
+        or self.currentTarget.dead then
+        return
+    end
+
+    if self.structureType ~= "Turret"
+        and self.structureType ~= "MissileTurret" then
+        return
+    end
+
+    if self.structureType == "MissileTurret" then
+        love.graphics.setColor(1, 0.45, 0.1, 0.55)
+    else
+        love.graphics.setColor(0.25, 0.65, 1, 0.45)
+    end
+
+    love.graphics.setLineWidth(1)
+
+    love.graphics.line(
+        self.x,
+        self.y,
+        self.currentTarget.x,
+        self.currentTarget.y
+    )
+
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1)
 end
 
 function Structure:drawTurret()

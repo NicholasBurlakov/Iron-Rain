@@ -79,6 +79,8 @@ function Enemy.new(x, y, enemyType)
     -- Combat state.
     self.cooldown = 0
     self.projectiles = {}
+    self.currentTarget = nil
+
     return self
 end
 
@@ -227,6 +229,8 @@ function Enemy:update(dt, waypoints, units, structures, terrain, combatText)
     end
 
     if self.dead then
+        self.currentTarget = nil
+
         self.corpseAge = self.corpseAge + dt
 
         if self.corpseAge >=
@@ -273,6 +277,8 @@ function Enemy:update(dt, waypoints, units, structures, terrain, combatText)
     self.cooldown = self.cooldown - dt
 
     local target = self:findTarget(units, structures)
+    self.currentTarget = target
+
     if target ~= nil and self.cooldown <= 0 then
         table.insert(
             self.projectiles,
@@ -347,6 +353,33 @@ function Enemy:drawBody()
 
         love.graphics.pop()
     end
+end
+
+function Enemy:drawTargetIndicator()
+    if self.dead
+        or self.currentTarget == nil
+        or self.currentTarget.dead
+        or self.currentTarget.extracted then
+        return
+    end
+
+    if self.enemyType == "siege" then
+        love.graphics.setColor(1, 0.05, 0.05, 0.8)
+        love.graphics.setLineWidth(2)
+    else
+        love.graphics.setColor(1, 0.15, 0.15, 0.45)
+        love.graphics.setLineWidth(1)
+    end
+
+    love.graphics.line(
+        self.x,
+        self.y,
+        self.currentTarget.x,
+        self.currentTarget.y
+    )
+
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1)
 end
 
 function Enemy:draw()

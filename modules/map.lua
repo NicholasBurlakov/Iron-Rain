@@ -904,6 +904,19 @@ function Map:draw()
     -- Draw terrain under units and structures.
     self.terrain:draw()
 
+    -- Draw targeting indicators under battlefield objects.
+    for _, enemy in ipairs(self.enemies) do
+        enemy:drawTargetIndicator()
+    end
+
+    for _, structure in ipairs(self.structures) do
+        structure:drawTargetIndicator()
+    end
+
+    for _, unit in ipairs(self.units) do
+        unit:drawTargetIndicator()
+    end
+
     -- Draw every enemy, including corpses.
     for _, enemy in ipairs(self.enemies) do
         enemy:draw()

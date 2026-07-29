@@ -56,6 +56,7 @@ function Unit.new(x, y, unitType)
     -- Basic combat state.
     self.cooldown = 0
     self.projectiles = {}
+    self.currentTarget = nil
 
     return self
 end
@@ -118,6 +119,8 @@ function Unit:update(
     end
 
     if self.dead then
+        self.currentTarget = nil
+
         self.corpseAge = self.corpseAge + dt
 
         if self.corpseAge >=
@@ -130,6 +133,7 @@ function Unit:update(
 
     if self.isExtracting
         or self.extracted then
+        self.currentTarget = nil
         return
     end
 
@@ -167,8 +171,10 @@ function Unit:update(
     self.cooldown = self.cooldown - dt
 
     local target = self:findClosestEnemy(enemies)
+    self.currentTarget = target
 
-    if target ~= nil and self.cooldown <= 0 then
+    if target ~= nil
+        and self.cooldown <= 0 then
         table.insert(
             self.projectiles,
             Projectile.new(
@@ -242,6 +248,29 @@ function Unit:getCorpseAlpha()
         / self.corpseFadeDuration
 
     return math.max(0, 1 - fadeProgress)
+end
+
+function Unit:drawTargetIndicator()
+    if self.dead
+        or self.isExtracting
+        or self.extracted
+        or self.currentTarget == nil
+        or self.currentTarget.dead then
+        return
+    end
+
+    love.graphics.setColor(0.25, 0.65, 1, 0.5)
+    love.graphics.setLineWidth(1)
+
+    love.graphics.line(
+        self.x,
+        self.y,
+        self.currentTarget.x,
+        self.currentTarget.y
+    )
+
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1)
 end
 
 function Unit:draw()
