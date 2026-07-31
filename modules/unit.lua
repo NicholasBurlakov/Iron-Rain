@@ -385,8 +385,7 @@ end
 
 function Unit:containsPoint(x, y)
     if self.dead
-        or self.isExtracting
-        or self.extracted then
+        or self.extractionComplete then
         return false
     end
 
@@ -436,13 +435,18 @@ function Unit:drawTargetIndicator()
 end
 
 function Unit:draw()
-    -- Hide extracted units.
-    if self.extracted then
+    -- Hide only after extraction is fully complete.
+    if self.extracted and self.extractionComplete then
         return
     end
 
     -- Draw the unit body.
+    -- After boarding, keep a faint ground marker so the player can reselect it.
     local alpha = self:getCorpseAlpha()
+
+    if self.extracted and not self.extractionComplete then
+        alpha = 0.35
+    end
 
     love.graphics.setColor(
         self.color[1],

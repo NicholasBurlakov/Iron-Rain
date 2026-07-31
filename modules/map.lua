@@ -335,7 +335,7 @@ function Map:removeDeadSelectedUnits()
         local unit = self.selectedUnits[i]
 
         -- Keep extracting units selected so the info panel can show progress.
-        -- Remove them only after the dropship has safely returned.
+        -- Remove them only after the dropship safely returns.
         if unit.dead
             or unit.removeCorpse
             or unit.extractionComplete then
@@ -375,8 +375,9 @@ function Map:getUnitAt(x, y)
     for i = #self.units, 1, -1 do
         local unit = self.units[i]
 
+        -- Extracting units remain selectable until extraction is complete.
         if not unit.dead
-            and not unit.extracted
+            and not unit.extractionComplete
             and unit:containsPoint(x, y) then
             return unit
         end

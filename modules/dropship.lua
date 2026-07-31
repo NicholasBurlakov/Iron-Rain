@@ -185,10 +185,10 @@ function Dropship:updateExtraction(dt)
         local pickupX = self.targetUnit.x
         local pickupY = self.targetUnit.y - 30
 
-        -- Progress shows that the dropship is inbound.
         local dx = pickupX - self.x
         local dy = pickupY - self.y
         local distance = math.sqrt(dx * dx + dy * dy)
+
         local approachProgress =
             0.55 - math.min(distance / 800, 1) * 0.50
 
@@ -216,7 +216,6 @@ function Dropship:updateExtraction(dt)
 
         self.pickupTimer = self.pickupTimer - dt
 
-        -- Boarding fills the middle part of the progress bar.
         local boardingProgress =
             0.55 + (1 - math.max(self.pickupTimer, 0) / 0.5) * 0.20
 
@@ -228,7 +227,6 @@ function Dropship:updateExtraction(dt)
 
         if self.pickupTimer <= 0 then
             self.onPickup(self.targetUnit)
-
             self.hasCargo = true
             self:beginReturn()
         end
@@ -254,7 +252,6 @@ function Dropship:updateExtraction(dt)
         end
 
         if self:moveToward(self.exitX, self.exitY, dt) then
-            -- The refund is earned only after the ship is safe.
             if self.hasCargo
                 and self.onSafeReturn ~= nil
                 and not self.safeReturnHandled then
