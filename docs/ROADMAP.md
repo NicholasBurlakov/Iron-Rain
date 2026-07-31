@@ -26,6 +26,8 @@
 - [x] Select multiple units
 - [x] Move selected groups together
 - [x] Basic unit targeting improvements
+- [x] Player unit target-priority modes
+- [x] Group target-priority mode cycling
 - [x] Enemies can target and destroy player structures
 
 ## Milestone 4 — Deployment Improvements
@@ -41,6 +43,8 @@
 - [x] Capacity is freed when an extracted unit boards its dropship
 - [x] Capacity reservations for incoming units and structures
 - [x] Hover descriptions for deployable units and structures
+- [x] Extraction progress tracking
+- [x] Extraction panel remains visible until dropship safely returns
 
 ## Milestone 5 — Structures and Defenses
 
@@ -49,6 +53,7 @@
 - [x] Command Post
 - [x] Missile Tower with splash damage
 - [x] Missile explosion visual effect
+- [x] Structure target-priority modes
 - [ ] Bunkers
 - [ ] Shield generator
 - [ ] Radar structure
@@ -63,6 +68,7 @@
 - [x] Random Cover damage reduction per damage event
 - [x] Cover affects friendly and enemy units
 - [x] Cover affects direct fire, missile explosions, and mine explosions
+- [x] Selection panel shows terrain protection status
 - [ ] Snow terrain movement penalties
 - [ ] Additional terrain types
 - [ ] Fortified positions
@@ -77,8 +83,18 @@
 - [x] Unit and structure destruction feedback
 - [x] Fading health bars for dead enemies
 - [x] Improved targeting indicators
-- [ ] Better selection and movement feedback
-- [ ] Unit status indicators
+- [x] Friendly range circle for selected player units and structures
+- [x] Enemy range circle for selected enemies
+- [x] Single-unit info panel
+- [x] Structure info panel
+- [x] Enemy info panel
+- [x] Multi-unit group info panel
+- [x] Mini portraits for selected unit groups
+- [x] Target mode display in info panel
+- [x] Extraction progress bar in info panel
+- [ ] Better movement destination feedback
+- [ ] Formation preview for selected groups
+- [ ] Unit status indicators above battlefield units
 - [ ] Damage-number stacking or spacing improvements
 
 ## Milestone 8 — Enemy Variety and Combat Roles
@@ -87,9 +103,14 @@
 - [x] Scout — fast, fragile unit
 - [x] Heavy — slow, durable unit
 - [x] Siege Walker
+  - [x] Very slow, high-health structure attacker
+  - [x] Prioritizes Command Posts and defensive structures
+  - [x] Long-range, slow, heavy attacks
+  - [x] Introduced in later waves
 - [ ] Additional specialist enemies
 - [ ] Enemy visual and attack distinctions
 - [ ] Better enemy target-priority behavior
+- [ ] Enemy status/role icons
 
 ## Milestone 9 — Territory and Frontline
 
@@ -101,6 +122,8 @@
 - [ ] Objectives that increase Command Capacity
 - [ ] Forward deployment positions
 - [ ] Strategic capture points
+- [ ] Command Posts create local deployment zones
+- [ ] Territory overlay UI
 
 ## Milestone 10 — Support Abilities
 
@@ -110,6 +133,8 @@
 - [ ] EMP
 - [ ] Missile barrage
 - [ ] Objective-based ability unlocks
+- [ ] Ability targeting preview
+- [ ] Ability impact indicators
 
 ## Milestone 11 — Campaign
 
@@ -121,16 +146,20 @@
 - [ ] Permanent upgrades
 - [ ] Save progress
 - [ ] Mission briefing and debriefing screens
+- [ ] Campaign upgrade tree
+- [ ] Mission difficulty progression
 
 ## Milestone 12 — Art, Animation, Audio, and Polish
 
 - [ ] Final unit sprites
 - [ ] Final structure sprites
+- [ ] Enemy sprites
 - [ ] Walking, attack, and death animations
 - [ ] Dropship and pod animation improvements
 - [ ] Projectile trails and explosions
 - [ ] Screen shake and impact effects
 - [ ] UI art and icons
+- [ ] Unit and structure portrait art
 - [ ] Weapon and explosion sound effects
 - [ ] Ambient audio and music
 - [ ] Final balance and visual cleanup
