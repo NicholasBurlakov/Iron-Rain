@@ -158,6 +158,7 @@ function Map:resetMission()
     self.orbitalPods = {}
 
     self.selectedUnits = {}
+    self.selectedStructure = nil
     self.isSelecting = false
     self.selectionStartX = 0
     self.selectionStartY = 0
@@ -297,6 +298,32 @@ function Map:removeExtractedUnits()
             table.remove(self.units, i)
         end
     end
+end
+
+function Map:getStructureAt(x, y)
+    for i = #self.structures, 1, -1 do
+        local structure = self.structures[i]
+
+        if structure:canChangeTargetingMode()
+            and structure:containsPoint(x, y) then
+            return structure
+        end
+    end
+
+    return nil
+end
+
+function Map:selectStructureAt(x, y)
+    local structure = self:getStructureAt(x, y)
+
+    if structure == nil then
+        return false
+    end
+
+    self.selectedStructure = structure
+    self.selectedUnits = {}
+
+    return true
 end
 
 function Map:getPlacementInfo(deployableType)
@@ -852,6 +879,11 @@ function Map:update(dt)
         )
     end
 
+    if self.selectedStructure ~= nil
+        and self.selectedStructure.dead then
+        self.selectedStructure = nil
+    end
+
     for _, unit in ipairs(self.units) do
         unit:update(
             dt,
@@ -911,6 +943,10 @@ function Map:draw()
 
     for _, structure in ipairs(self.structures) do
         structure:drawTargetIndicator()
+    end
+
+    if self.selectedStructure ~= nil then
+        self.selectedStructure:drawSelectionIndicator()
     end
 
     for _, unit in ipairs(self.units) do
@@ -1098,6 +1134,14 @@ function Map:mousepressed(x, y, button)
 
     local screenHeight = love.graphics.getHeight()
 
+    if button == 1 then
+        if self:selectStructureAt(x, y) then
+            return
+        end
+
+        self.selectedStructure = nil
+    end
+
     -- Handle left-clicks.
     if button == 1 then
         local clickedMenu = self.buildMenu:mousepressed(
@@ -1282,6 +1326,12 @@ function Map:keypressed(key)
     -- Let Enter or Space start the mission briefing.
     if self.tutorial:isOpen() then
         self.tutorial:keypressed(key)
+        return
+    end
+
+    if key == "t"
+        and self.selectedStructure ~= nil then
+        self.selectedStructure:cycleTargetingMode()
         return
     end
 

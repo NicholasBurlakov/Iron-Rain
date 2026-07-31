@@ -13,6 +13,17 @@ function Structure.new(x, y, structureType)
     self.projectiles = {}
     self.currentTarget = nil
 
+    -- Target priority controls for Turrets and Missile Towers.
+    self.targetingModes = {
+        "Nearest",
+        "Strongest",
+        "Weakest",
+        "Siege First",
+        "Scout First"
+    }
+
+    self.targetingModeIndex = 1
+
     self.dead = false
     self.exploded = false
 
@@ -81,6 +92,39 @@ function Structure.new(x, y, structureType)
     return self
 end
 
+function Structure:canChangeTargetingMode()
+    return not self.dead
+        and (
+            self.structureType == "Turret"
+            or self.structureType == "MissileTurret"
+        )
+end
+
+function Structure:getTargetingMode()
+    return self.targetingModes[self.targetingModeIndex]
+        or "Nearest"
+end
+
+function Structure:cycleTargetingMode()
+    if not self:canChangeTargetingMode() then
+        return
+    end
+
+    self.targetingModeIndex =
+        self.targetingModeIndex + 1
+
+    if self.targetingModeIndex > #self.targetingModes then
+        self.targetingModeIndex = 1
+    end
+end
+
+function Structure:containsPoint(px, py)
+    return px >= self.x - self.width / 2
+        and px <= self.x + self.width / 2
+        and py >= self.y - self.height / 2
+        and py <= self.y + self.height / 2
+end
+
 function Structure:takeDamage(amount)
     if self.dead or self.targetable == false then
         return
@@ -115,6 +159,135 @@ function Structure:findClosestEnemy(enemies)
     return closestEnemy
 end
 
+function Structure:findStrongestEnemy(enemies)
+    local strongestEnemy = nil
+    local strongestHealth = -math.huge
+    local closestDistance = math.huge
+
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range then
+                local betterHealth =
+                    enemy.health > strongestHealth
+
+                local sameHealthButCloser =
+                    enemy.health == strongestHealth
+                    and distance < closestDistance
+
+                if betterHealth or sameHealthButCloser then
+                    strongestEnemy = enemy
+                    strongestHealth = enemy.health
+                    closestDistance = distance
+                end
+            end
+        end
+    end
+
+    return strongestEnemy
+end
+
+function Structure:findWeakestEnemy(enemies)
+    local weakestEnemy = nil
+    local weakestHealth = math.huge
+    local closestDistance = math.huge
+
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range then
+                local lowerHealth =
+                    enemy.health < weakestHealth
+
+                local sameHealthButCloser =
+                    enemy.health == weakestHealth
+                    and distance < closestDistance
+
+                if lowerHealth or sameHealthButCloser then
+                    weakestEnemy = enemy
+                    weakestHealth = enemy.health
+                    closestDistance = distance
+                end
+            end
+        end
+    end
+
+    return weakestEnemy
+end
+
+function Structure:findClosestEnemyOfType(
+    enemies,
+    enemyType
+)
+    local closestEnemy = nil
+    local closestDistance = math.huge
+
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead
+            and enemy.enemyType == enemyType then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range
+                and distance < closestDistance then
+                closestEnemy = enemy
+                closestDistance = distance
+            end
+        end
+    end
+
+    return closestEnemy
+end
+
+function Structure:findTargetEnemy(enemies)
+    local mode = self:getTargetingMode()
+
+    if mode == "Strongest" then
+        return self:findStrongestEnemy(enemies)
+    end
+
+    if mode == "Weakest" then
+        return self:findWeakestEnemy(enemies)
+    end
+
+    if mode == "Siege First" then
+        local siegeTarget =
+            self:findClosestEnemyOfType(
+                enemies,
+                "siege"
+            )
+
+        if siegeTarget ~= nil then
+            return siegeTarget
+        end
+
+        return self:findClosestEnemy(enemies)
+    end
+
+    if mode == "Scout First" then
+        local scoutTarget =
+            self:findClosestEnemyOfType(
+                enemies,
+                "scout"
+            )
+
+        if scoutTarget ~= nil then
+            return scoutTarget
+        end
+
+        return self:findClosestEnemy(enemies)
+    end
+
+    return self:findClosestEnemy(enemies)
+end
+
 function Structure:updateTurret(dt, enemies, terrain, combatText)
     -- Let already-fired projectiles keep traveling.
     for i = #self.projectiles, 1, -1 do
@@ -134,7 +307,7 @@ function Structure:updateTurret(dt, enemies, terrain, combatText)
 
     self.cooldown = self.cooldown - dt
 
-    local target = self:findClosestEnemy(enemies)
+    local target = self:findTargetEnemy(enemies)
     self.currentTarget = target
 
     if target ~= nil
@@ -193,7 +366,7 @@ function Structure:updateMissileTurret(
 
     self.cooldown = self.cooldown - dt
 
-    local target = self:findClosestEnemy(enemies)
+    local target = self:findTargetEnemy(enemies)
     self.currentTarget = target
 
     if target ~= nil
@@ -454,6 +627,56 @@ function Structure:drawTargetIndicator()
     )
 
     love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1)
+end
+
+function Structure:drawSelectionIndicator()
+    if not self:canChangeTargetingMode() then
+        return
+    end
+
+    local mode = self:getTargetingMode()
+
+    if self.structureType == "MissileTurret" then
+        love.graphics.setColor(1, 0.45, 0.1, 0.9)
+    else
+        love.graphics.setColor(0.25, 0.65, 1, 0.9)
+    end
+
+    love.graphics.setLineWidth(2)
+
+    love.graphics.rectangle(
+        "line",
+        self.x - self.width / 2 - 5,
+        self.y - self.height / 2 - 5,
+        self.width + 10,
+        self.height + 10
+    )
+
+    love.graphics.setLineWidth(1)
+
+    local label = "Target: " .. mode
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(label)
+
+    love.graphics.setColor(0, 0, 0, 0.75)
+
+    love.graphics.rectangle(
+        "fill",
+        self.x - textWidth / 2 - 5,
+        self.y - self.height / 2 - 28,
+        textWidth + 10,
+        18
+    )
+
+    love.graphics.setColor(1, 1, 1)
+
+    love.graphics.print(
+        label,
+        self.x - textWidth / 2,
+        self.y - self.height / 2 - 26
+    )
+
     love.graphics.setColor(1, 1, 1)
 end
 
