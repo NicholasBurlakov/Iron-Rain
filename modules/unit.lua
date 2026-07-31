@@ -482,6 +482,148 @@ function Unit:drawMoveOrder()
     love.graphics.setLineWidth(1)
 end
 
+function Unit:getStatusIndicator(terrain)
+    if self.dead
+        or self.extractionComplete then
+        return nil
+    end
+
+    -- Highest priority: extraction.
+    -- This should stay visible even after the unit boards the dropship,
+    -- until extraction is fully complete.
+    if self.isExtracting
+        or self.extracted then
+        return {
+            text = "EXTRACT",
+            color = { 0.25, 0.65, 1 }
+        }
+    end
+
+    -- Low health warning.
+    if self.maxHealth ~= nil
+        and self.maxHealth > 0
+        and self.health / self.maxHealth <= 0.35 then
+        return {
+            text = "LOW HP",
+            color = { 1, 0.2, 0.2 }
+        }
+    end
+
+    -- Terrain movement penalty.
+    -- Show this before MOVE so the player understands why the unit is slow.
+    if terrain ~= nil then
+        local zone = terrain:getZoneAt(self.x, self.y)
+
+        if zone ~= nil
+            and zone.speedMultiplier ~= nil
+            and zone.speedMultiplier < 1 then
+            return {
+                text = "SLOW",
+                color = { 0.95, 0.65, 0.2 }
+            }
+        end
+    end
+
+    -- Movement order.
+    if self.targetX ~= nil
+        and self.targetY ~= nil then
+        return {
+            text = "MOVE",
+            color = { 0.25, 0.65, 1 }
+        }
+    end
+
+    -- Attacking a target.
+    if self.currentTarget ~= nil
+        and not self.currentTarget.dead then
+        return {
+            text = "ATTACK",
+            color = { 1, 0.85, 0.2 }
+        }
+    end
+
+    -- Terrain protection.
+    if terrain ~= nil then
+        local zone = terrain:getZoneAt(self.x, self.y)
+
+        if zone ~= nil
+            and zone.minDamageReduction ~= nil then
+            return {
+                text = "COVER",
+                color = { 0.35, 0.85, 1 }
+            }
+        end
+    end
+
+    -- Do not show an idle badge for now.
+    -- The screen stays cleaner if idle units have no indicator.
+    return nil
+end
+
+function Unit:drawStatusIndicator(terrain)
+    local status = self:getStatusIndicator(terrain)
+
+    if status == nil then
+        return
+    end
+
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(status.text)
+    local textHeight = font:getHeight()
+
+    local paddingX = 5
+    local paddingY = 2
+
+    local badgeWidth = textWidth + paddingX * 2
+    local badgeHeight = textHeight + paddingY * 2
+
+    local badgeX = self.x - badgeWidth / 2
+    local badgeY = self.y - self.height / 2 - badgeHeight - 8
+
+    -- Background badge.
+    love.graphics.setColor(
+        status.color[1],
+        status.color[2],
+        status.color[3],
+        0.22
+    )
+
+    love.graphics.rectangle(
+        "fill",
+        badgeX,
+        badgeY,
+        badgeWidth,
+        badgeHeight
+    )
+
+    -- Badge outline.
+    love.graphics.setColor(
+        status.color[1],
+        status.color[2],
+        status.color[3],
+        0.85
+    )
+
+    love.graphics.rectangle(
+        "line",
+        badgeX,
+        badgeY,
+        badgeWidth,
+        badgeHeight
+    )
+
+    -- Badge text.
+    love.graphics.setColor(1, 1, 1, 0.95)
+
+    love.graphics.print(
+        status.text,
+        badgeX + paddingX,
+        badgeY + paddingY
+    )
+
+    love.graphics.setColor(1, 1, 1)
+end
+
 function Unit:drawTargetIndicator()
     if self.dead
         or self.isExtracting

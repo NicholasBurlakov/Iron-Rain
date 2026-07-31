@@ -92,9 +92,9 @@
 - [x] Mini portraits for selected unit groups
 - [x] Target mode display in info panel
 - [x] Extraction progress bar in info panel
-- [ ] Better movement destination feedback
-- [ ] Formation preview for selected groups
-- [ ] Unit status indicators above battlefield units
+- [x] Better movement destination feedback
+- [x] Formation preview for selected groups
+- [x] Unit status indicators above battlefield units
 - [ ] Damage-number stacking or spacing improvements
 
 ## Milestone 8 — Enemy Variety and Combat Roles

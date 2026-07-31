@@ -1194,6 +1194,14 @@ function Map:draw()
         unit:draw()
     end
 
+    -- Draw unit status badges above friendly units.
+    -- These are drawn after the unit bodies so they stay readable.
+    for _, unit in ipairs(self.units) do
+        if unit.drawStatusIndicator ~= nil then
+            unit:drawStatusIndicator(self.terrain)
+        end
+    end
+
     -- Draw active deliveries.
     for _, dropship in ipairs(self.dropships) do
         dropship:draw()
