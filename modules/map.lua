@@ -1138,6 +1138,15 @@ function Map:draw()
     -- Draw terrain under units and structures.
     self.terrain:draw()
 
+    -- Show move orders for selected units only.
+    -- Each line shrinks automatically because it is drawn from the unit's
+    -- current position to its destination every frame.
+    for _, unit in ipairs(self.selectedUnits) do
+        if unit.drawMoveOrder ~= nil then
+            unit:drawMoveOrder()
+        end
+    end
+
     -- Show selected attack range under battlefield objects.
     self:drawSelectedRangeCircle()
 

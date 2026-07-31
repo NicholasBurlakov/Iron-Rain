@@ -411,6 +411,77 @@ function Unit:getCorpseAlpha()
     return math.max(0, 1 - fadeProgress)
 end
 
+function Unit:drawDottedLine(startX, startY, endX, endY)
+    local dx = endX - startX
+    local dy = endY - startY
+    local distance = math.sqrt(dx * dx + dy * dy)
+
+    if distance < 8 then
+        return
+    end
+
+    local dirX = dx / distance
+    local dirY = dy / distance
+
+    local dotSpacing = 12
+    local dotRadius = 2
+
+    -- Start a little away from the unit so the dots do not cover the unit body.
+    local currentDistance = 12
+
+    while currentDistance < distance - 12 do
+        local dotX = startX + dirX * currentDistance
+        local dotY = startY + dirY * currentDistance
+
+        love.graphics.circle("fill", dotX, dotY, dotRadius)
+
+        currentDistance = currentDistance + dotSpacing
+    end
+end
+
+function Unit:drawMoveDestinationMarker(x, y)
+    -- Small persistent destination marker.
+    -- This stays visible until the unit reaches the position or loses the order.
+    love.graphics.setLineWidth(2)
+
+    love.graphics.circle("line", x, y, 8)
+
+    love.graphics.line(x - 5, y, x + 5, y)
+    love.graphics.line(x, y - 5, x, y + 5)
+
+    love.graphics.setLineWidth(1)
+end
+
+function Unit:drawMoveOrder()
+    if self.dead
+        or self.isExtracting
+        or self.extracted
+        or self.targetX == nil
+        or self.targetY == nil then
+        return
+    end
+
+    -- The line is drawn from the unit's CURRENT position to its destination.
+    -- Because self.x/self.y update every frame, the dotted line naturally
+    -- gets shorter as the unit travels.
+    love.graphics.setColor(0.25, 0.65, 1, 0.32)
+    self:drawDottedLine(
+        self.x,
+        self.y,
+        self.targetX,
+        self.targetY
+    )
+
+    love.graphics.setColor(0.25, 0.65, 1, 0.75)
+    self:drawMoveDestinationMarker(
+        self.targetX,
+        self.targetY
+    )
+
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.setLineWidth(1)
+end
+
 function Unit:drawTargetIndicator()
     if self.dead
         or self.isExtracting
