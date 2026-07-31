@@ -44,6 +44,8 @@ function Unit.new(x, y, unitType)
     self.isExtracting = false
     self.extracted = false
     self.extractionProgress = 0
+    self.extractionStatus = nil
+    self.extractionComplete = false
     self.rotation = 0
 
     -- Corpse timing.
@@ -369,7 +371,10 @@ function Unit:beginExtraction()
 
     -- Stop the unit from moving or firing while extraction begins.
     self.isExtracting = true
-    self.extractionProgress = 0.15
+    self.extractionProgress = 0.05
+    self.extractionStatus = "Dropship inbound"
+    self.extractionComplete = false
+
     self.currentTarget = nil
     self.targetX = nil
     self.targetY = nil

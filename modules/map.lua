@@ -332,9 +332,17 @@ end
 
 function Map:removeDeadSelectedUnits()
     for i = #self.selectedUnits, 1, -1 do
-        if self.selectedUnits[i].dead
-            or self.selectedUnits[i].isExtracting
-            or self.selectedUnits[i].extracted then
+        local unit = self.selectedUnits[i]
+
+        -- Keep extracting units selected so the info panel can show progress.
+        -- Remove them only after the dropship has safely returned.
+        if unit.dead
+            or unit.removeCorpse
+            or unit.extractionComplete then
+            if self.selectedEntity == unit then
+                self.selectedEntity = nil
+            end
+
             table.remove(self.selectedUnits, i)
         end
     end
@@ -342,7 +350,9 @@ end
 
 function Map:removeExtractedUnits()
     for i = #self.units, 1, -1 do
-        if self.units[i].extracted then
+        -- Do not remove the unit when it boards.
+        -- Wait until the extraction dropship safely returns.
+        if self.units[i].extractionComplete then
             table.remove(self.units, i)
         end
     end
@@ -660,16 +670,30 @@ function Map:requestUnitExtraction(unit)
             -- The unit boards the dropship.
             function(extractedUnit)
                 if extractedUnit.dead
-                    or extractedUnit.extracted then
+                    or extractedUnit.extractionComplete then
                     return
                 end
 
+                -- Marking extracted frees capacity because getUsedCapacity()
+                -- already ignores extracted units.
                 extractedUnit.extracted = true
-                extractedUnit.isExtracting = false
+                extractedUnit.isExtracting = true
+                extractedUnit.extractionStatus = "Returning to orbit"
+                extractedUnit.extractionProgress = math.max(
+                    extractedUnit.extractionProgress or 0,
+                    0.75
+                )
             end,
 
             -- Supply returns only when the dropship safely exits.
-            function()
+            function(returnedUnit)
+                if returnedUnit ~= nil then
+                    returnedUnit.extractionProgress = 1
+                    returnedUnit.extractionStatus = "Returned to orbit"
+                    returnedUnit.extractionComplete = true
+                    returnedUnit.isExtracting = false
+                end
+
                 self.supply = self.supply + refund
             end
         )
@@ -1266,18 +1290,11 @@ function Map:draw()
 
     love.graphics.print(waveText, 20, 20)
 
-    -- Draw a compact squad summary when multiple units are selected.
-    if #self.selectedUnits > 1 then
-        self.selectionPanel:drawUnitGroup(
-            self.selectedUnits,
-            self.terrain
-        )
-    else
-        self.selectionPanel:draw(
-            self:getSelectedEntity(),
-            self.terrain
-        )
-    end
+    -- Draw the selected unit, structure, or enemy stats.
+    self.selectionPanel:draw(
+        self:getSelectedEntity(),
+        self.terrain
+    )
 
     if self.missionState ~= "playing" then
         -- Draw the mission result screen.
@@ -1534,8 +1551,8 @@ function Map:keypressed(key)
             table.insert(unitsToExtract, unit)
         end
 
-        self:clearSelection()
-
+        -- Do not clear selection here.
+        -- The panel should stay open while extraction is in progress.
         for _, unit in ipairs(unitsToExtract) do
             if self:getAvailableDropships() <= 0 then
                 break

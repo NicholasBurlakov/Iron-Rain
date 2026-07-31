@@ -26,7 +26,6 @@ function Dropship.new(
     local self = Dropship.createBase()
 
     self.kind = "reinforcement"
-
     self.x = -140
     self.y = -80
 
@@ -67,11 +66,39 @@ function Dropship.newExtraction(unit, onPickup, onSafeReturn)
 
     self.state = "approaching"
     self.pickupTimer = 0.5
+    self.pickupDuration = self.pickupTimer
 
     self.hasCargo = false
     self.capacityCost = 0
 
+    -- These distances let us turn dropship travel into a visible progress bar.
+    self.approachStartDistance = nil
+    self.returnStartDistance = nil
+
+    if self.targetUnit ~= nil then
+        self.targetUnit.extractionProgress = 0.05
+        self.targetUnit.extractionComplete = false
+    end
+
     return self
+end
+
+function Dropship:getDistanceTo(targetX, targetY)
+    local dx = targetX - self.x
+    local dy = targetY - self.y
+
+    return math.sqrt(dx * dx + dy * dy)
+end
+
+function Dropship:setExtractionProgress(progress)
+    if self.targetUnit == nil then
+        return
+    end
+
+    self.targetUnit.extractionProgress = math.max(
+        0,
+        math.min(1, progress)
+    )
 end
 
 function Dropship:moveToward(targetX, targetY, dt)
@@ -99,6 +126,13 @@ function Dropship:beginReturn()
     self.exitX = love.graphics.getWidth() + 140
     self.exitY = -80
     self.state = "departing"
+
+    if self.kind == "extraction" then
+        self.returnStartDistance = math.max(
+            1,
+            self:getDistanceTo(self.exitX, self.exitY)
+        )
+    end
 end
 
 function Dropship:updateReinforcement(dt)
@@ -143,7 +177,7 @@ function Dropship:updateExtraction(dt)
     if self.state == "approaching" then
         if self.targetUnit == nil
             or self.targetUnit.dead
-            or self.targetUnit.extracted then
+            or self.targetUnit.extractionComplete then
             self:beginReturn()
             return
         end
@@ -151,8 +185,23 @@ function Dropship:updateExtraction(dt)
         local pickupX = self.targetUnit.x
         local pickupY = self.targetUnit.y - 30
 
+        -- Progress shows that the dropship is inbound.
+        local dx = pickupX - self.x
+        local dy = pickupY - self.y
+        local distance = math.sqrt(dx * dx + dy * dy)
+        local approachProgress =
+            0.55 - math.min(distance / 800, 1) * 0.50
+
+        self.targetUnit.extractionStatus = "Dropship inbound"
+        self.targetUnit.extractionProgress = math.max(
+            self.targetUnit.extractionProgress or 0,
+            approachProgress
+        )
+
         if self:moveToward(pickupX, pickupY, dt) then
             self.state = "pickingUp"
+            self.targetUnit.extractionStatus = "Boarding"
+            self.targetUnit.extractionProgress = 0.55
         end
 
         return
@@ -160,12 +209,22 @@ function Dropship:updateExtraction(dt)
 
     if self.state == "pickingUp" then
         if self.targetUnit.dead
-            or self.targetUnit.extracted then
+            or self.targetUnit.extractionComplete then
             self:beginReturn()
             return
         end
 
         self.pickupTimer = self.pickupTimer - dt
+
+        -- Boarding fills the middle part of the progress bar.
+        local boardingProgress =
+            0.55 + (1 - math.max(self.pickupTimer, 0) / 0.5) * 0.20
+
+        self.targetUnit.extractionStatus = "Boarding"
+        self.targetUnit.extractionProgress = math.max(
+            self.targetUnit.extractionProgress or 0,
+            boardingProgress
+        )
 
         if self.pickupTimer <= 0 then
             self.onPickup(self.targetUnit)
@@ -178,6 +237,22 @@ function Dropship:updateExtraction(dt)
     end
 
     if self.state == "departing" then
+        if self.targetUnit ~= nil
+            and not self.targetUnit.extractionComplete then
+            local dx = self.exitX - self.x
+            local dy = self.exitY - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            local returnProgress =
+                0.75 + (1 - math.min(distance / 800, 1)) * 0.24
+
+            self.targetUnit.extractionStatus = "Returning to orbit"
+            self.targetUnit.extractionProgress = math.max(
+                self.targetUnit.extractionProgress or 0,
+                returnProgress
+            )
+        end
+
         if self:moveToward(self.exitX, self.exitY, dt) then
             -- The refund is earned only after the ship is safe.
             if self.hasCargo
@@ -213,7 +288,6 @@ function Dropship:draw()
 
     -- Cockpit / front section.
     love.graphics.setColor(0.2, 0.7, 1)
-
     love.graphics.rectangle(
         "fill",
         self.x - self.width / 2 - 12,
