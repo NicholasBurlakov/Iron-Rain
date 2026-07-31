@@ -1266,11 +1266,18 @@ function Map:draw()
 
     love.graphics.print(waveText, 20, 20)
 
-    -- Draw the selected unit, structure, or enemy stats.
-    self.selectionPanel:draw(
-        self:getSelectedEntity(),
-        self.terrain
-    )
+    -- Draw a compact squad summary when multiple units are selected.
+    if #self.selectedUnits > 1 then
+        self.selectionPanel:drawUnitGroup(
+            self.selectedUnits,
+            self.terrain
+        )
+    else
+        self.selectionPanel:draw(
+            self:getSelectedEntity(),
+            self.terrain
+        )
+    end
 
     if self.missionState ~= "playing" then
         -- Draw the mission result screen.

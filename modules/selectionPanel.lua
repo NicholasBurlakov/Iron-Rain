@@ -282,6 +282,314 @@ function SelectionPanel:getLines(entity, terrain)
     return lines
 end
 
+function SelectionPanel:getUnitTypeLabel(unitType)
+    local labels = {
+        Rifle = "Rifle",
+        Heavy = "Heavy"
+    }
+
+    return labels[unitType] or unitType or "Unknown"
+end
+
+function SelectionPanel:getUnitGroupComposition(units)
+    local counts = {}
+    local order = {}
+
+    for _, unit in ipairs(units) do
+        local unitType = unit.unitType or "Unknown"
+
+        if counts[unitType] == nil then
+            counts[unitType] = 0
+            table.insert(order, unitType)
+        end
+
+        counts[unitType] = counts[unitType] + 1
+    end
+
+    local pieces = {}
+
+    for _, unitType in ipairs(order) do
+        table.insert(
+            pieces,
+            self:getUnitTypeLabel(unitType)
+            .. " x"
+            .. tostring(counts[unitType])
+        )
+    end
+
+    return table.concat(pieces, ", ")
+end
+
+function SelectionPanel:getUnitGroupHealth(units)
+    local currentHealth = 0
+    local maximumHealth = 0
+
+    for _, unit in ipairs(units) do
+        if unit.health ~= nil
+            and unit.maxHealth ~= nil then
+            currentHealth = currentHealth + unit.health
+            maximumHealth = maximumHealth + unit.maxHealth
+        end
+    end
+
+    if maximumHealth <= 0 then
+        return nil, nil
+    end
+
+    return currentHealth, maximumHealth
+end
+
+function SelectionPanel:getUnitGroupCapacity(units)
+    local capacity = 0
+
+    for _, unit in ipairs(units) do
+        capacity = capacity + (unit.capacityCost or 0)
+    end
+
+    return capacity
+end
+
+function SelectionPanel:getUnitGroupTargetMode(units)
+    local sharedMode = nil
+
+    for _, unit in ipairs(units) do
+        if unit.getTargetingMode ~= nil then
+            local mode = unit:getTargetingMode()
+
+            if sharedMode == nil then
+                sharedMode = mode
+            elseif sharedMode ~= mode then
+                return "Mixed"
+            end
+        end
+    end
+
+    return sharedMode
+end
+
+function SelectionPanel:getUnitGroupProtectionText(units, terrain)
+    if terrain == nil then
+        return "None"
+    end
+
+    local coverCount = 0
+    local roughCount = 0
+
+    for _, unit in ipairs(units) do
+        local zone = terrain:getZoneAt(unit.x, unit.y)
+
+        if zone ~= nil then
+            if zone.minDamageReduction ~= nil then
+                coverCount = coverCount + 1
+            elseif zone.speedMultiplier ~= nil
+                and zone.speedMultiplier < 1 then
+                roughCount = roughCount + 1
+            end
+        end
+    end
+
+    local pieces = {}
+
+    if coverCount > 0 then
+        table.insert(
+            pieces,
+            tostring(coverCount) .. " in Cover"
+        )
+    end
+
+    if roughCount > 0 then
+        table.insert(
+            pieces,
+            tostring(roughCount) .. " in Rough"
+        )
+    end
+
+    if #pieces == 0 then
+        return "None"
+    end
+
+    return table.concat(pieces, ", ")
+end
+
+function SelectionPanel:getUnitGroupExtractionProgress(units)
+    local extractingCount = 0
+    local totalProgress = 0
+
+    for _, unit in ipairs(units) do
+        if unit.isExtracting or unit.extracted then
+            extractingCount = extractingCount + 1
+            totalProgress = totalProgress
+                + (self:getExtractionProgress(unit) or 0)
+        end
+    end
+
+    if extractingCount == 0 then
+        return nil, nil
+    end
+
+    return totalProgress / extractingCount, extractingCount
+end
+
+function SelectionPanel:getUnitGroupLines(units, terrain)
+    local lines = {}
+
+    local currentHealth, maximumHealth =
+        self:getUnitGroupHealth(units)
+
+    self:addLine(
+        lines,
+        "Role",
+        "Selected Squad"
+    )
+
+    self:addLine(
+        lines,
+        "Units",
+        tostring(#units) .. " selected"
+    )
+
+    self:addLine(
+        lines,
+        "Composition",
+        self:getUnitGroupComposition(units)
+    )
+
+    if currentHealth ~= nil
+        and maximumHealth ~= nil then
+        local healthPercent = math.floor(
+            (currentHealth / maximumHealth) * 100 + 0.5
+        )
+
+        self:addLine(
+            lines,
+            "Health",
+            self:formatNumber(currentHealth)
+            .. " / "
+            .. self:formatNumber(maximumHealth)
+            .. " ("
+            .. tostring(healthPercent)
+            .. "%)"
+        )
+    end
+
+    self:addLine(
+        lines,
+        "Capacity",
+        self:formatNumber(
+            self:getUnitGroupCapacity(units)
+        )
+    )
+
+    self:addLine(
+        lines,
+        "Target Mode",
+        self:getUnitGroupTargetMode(units)
+    )
+
+    self:addLine(
+        lines,
+        "Protection",
+        self:getUnitGroupProtectionText(units, terrain)
+    )
+
+    return lines
+end
+
+function SelectionPanel:drawGroupPortrait(units, x, y)
+    love.graphics.setColor(0.25, 0.65, 1, 1)
+    love.graphics.rectangle("fill", x, y, 44, 44)
+
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.rectangle("line", x, y, 44, 44)
+
+    love.graphics.setFont(self.titleFont)
+    love.graphics.printf(
+        tostring(#units),
+        x,
+        y + 12,
+        44,
+        "center"
+    )
+end
+
+function SelectionPanel:drawUnitGroup(units, terrain)
+    if units == nil or #units == 0 then
+        return
+    end
+
+    local lines = self:getUnitGroupLines(units, terrain)
+    local extractionProgress, extractingCount =
+        self:getUnitGroupExtractionProgress(units)
+
+    local contentHeight = 64 + #lines * self.lineHeight
+
+    if extractionProgress ~= nil then
+        contentHeight = contentHeight + self.lineHeight
+    end
+
+    local panelHeight = contentHeight + self.padding * 2
+
+    -- Draw one compact squad panel instead of one full panel per unit.
+    love.graphics.setColor(0.02, 0.025, 0.035, 0.9)
+    love.graphics.rectangle(
+        "fill",
+        self.x,
+        self.y,
+        self.width,
+        panelHeight
+    )
+
+    love.graphics.setColor(1, 1, 1, 0.18)
+    love.graphics.rectangle(
+        "line",
+        self.x,
+        self.y,
+        self.width,
+        panelHeight
+    )
+
+    local portraitX = self.x + self.padding
+    local portraitY = self.y + self.padding
+
+    self:drawGroupPortrait(units, portraitX, portraitY)
+
+    love.graphics.setFont(self.titleFont)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.print(
+        "UNIT GROUP",
+        portraitX + 56,
+        portraitY + 4
+    )
+
+    love.graphics.setFont(self.smallFont)
+    love.graphics.setColor(0.78, 0.82, 0.9)
+    love.graphics.print(
+        "Multiple Units Selected",
+        portraitX + 56,
+        portraitY + 26
+    )
+
+    local lineX = self.x + self.padding
+    local lineY = self.y + self.padding + 62
+
+    for _, line in ipairs(lines) do
+        self:drawLine(line, lineX, lineY)
+        lineY = lineY + self.lineHeight
+    end
+
+    if extractionProgress ~= nil then
+        self:drawProgressBar(
+            "Extracting " .. tostring(extractingCount),
+            extractionProgress,
+            lineX,
+            lineY,
+            self.width - self.padding * 2
+        )
+    end
+
+    love.graphics.setColor(1, 1, 1)
+end
+
 function SelectionPanel:drawPortrait(entity, x, y)
     local color = self:getEntityColor(entity)
     local label = string.sub(self:getEntityName(entity), 1, 1)
