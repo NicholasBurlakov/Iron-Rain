@@ -7,6 +7,7 @@ local OrbitalPod = require("modules.orbitalPod")
 local Tutorial = require("modules.tutorial")
 local Terrain = require("modules.terrain")
 local CombatText = require("modules.combatText")
+local SelectionPanel = require("modules.selectionPanel")
 
 local Map = {}
 
@@ -145,6 +146,11 @@ function Map:load()
     self.tutorial = Tutorial.new()
     self.terrain = Terrain.new()
     self.combatText = CombatText.new()
+    self.selectionPanel = SelectionPanel.new()
+
+    -- Keep the info panel below the wave text.
+    self.selectionPanel.y = 52
+
     self:resetMission()
 end
 
@@ -159,6 +165,7 @@ function Map:resetMission()
 
     self.selectedUnits = {}
     self.selectedStructure = nil
+    self.selectedEntity = nil
     self.isSelecting = false
     self.selectionStartX = 0
     self.selectionStartY = 0
@@ -274,12 +281,53 @@ function Map:startOrbitalPodFabrication()
         self.orbitalPodFabricationDuration
 end
 
+function Map:getSelectedEntity()
+    if self.selectedEntity ~= nil then
+        return self.selectedEntity
+    end
+
+    if self.selectedStructure ~= nil then
+        return self.selectedStructure
+    end
+
+    if #self.selectedUnits == 1 then
+        return self.selectedUnits[1]
+    end
+
+    return nil
+end
+
+function Map:clearSelection()
+    self.selectedUnits = {}
+    self.selectedStructure = nil
+    self.selectedEntity = nil
+end
+
 function Map:clearSelectedUnits()
     self.selectedUnits = {}
+
+    -- Unit selection is separate from structure/enemy inspection.
+    if self.selectedEntity ~= self.selectedStructure then
+        self.selectedEntity = self.selectedStructure
+    end
 end
 
 function Map:selectSingleUnit(unit)
     self.selectedUnits = { unit }
+    self.selectedStructure = nil
+    self.selectedEntity = unit
+end
+
+function Map:selectSingleEnemy(enemy)
+    self.selectedUnits = {}
+    self.selectedStructure = nil
+    self.selectedEntity = enemy
+end
+
+function Map:selectSingleStructure(structure)
+    self.selectedUnits = {}
+    self.selectedStructure = structure
+    self.selectedEntity = structure
 end
 
 function Map:removeDeadSelectedUnits()
@@ -304,7 +352,7 @@ function Map:getStructureAt(x, y)
     for i = #self.structures, 1, -1 do
         local structure = self.structures[i]
 
-        if structure:canChangeTargetingMode()
+        if not structure.dead
             and structure:containsPoint(x, y) then
             return structure
         end
@@ -313,17 +361,65 @@ function Map:getStructureAt(x, y)
     return nil
 end
 
-function Map:selectStructureAt(x, y)
-    local structure = self:getStructureAt(x, y)
+function Map:getUnitAt(x, y)
+    for i = #self.units, 1, -1 do
+        local unit = self.units[i]
 
-    if structure == nil then
-        return false
+        if not unit.dead
+            and not unit.extracted
+            and unit:containsPoint(x, y) then
+            return unit
+        end
     end
 
-    self.selectedStructure = structure
-    self.selectedUnits = {}
+    return nil
+end
 
-    return true
+function Map:getEnemyAt(x, y)
+    for i = #self.enemies, 1, -1 do
+        local enemy = self.enemies[i]
+        local width = enemy.width or enemy.radius * 2
+        local height = enemy.height or enemy.radius * 2
+
+        local insideEnemy =
+            x >= enemy.x - width / 2
+            and x <= enemy.x + width / 2
+            and y >= enemy.y - height / 2
+            and y <= enemy.y + height / 2
+
+        if insideEnemy then
+            return enemy
+        end
+    end
+
+    return nil
+end
+
+function Map:selectEntityAt(x, y)
+    -- Structures are checked first so defenses can be selected
+    -- even when enemies or units overlap nearby.
+    local structure = self:getStructureAt(x, y)
+
+    if structure ~= nil then
+        self:selectSingleStructure(structure)
+        return true
+    end
+
+    local unit = self:getUnitAt(x, y)
+
+    if unit ~= nil then
+        self:selectSingleUnit(unit)
+        return true
+    end
+
+    local enemy = self:getEnemyAt(x, y)
+
+    if enemy ~= nil then
+        self:selectSingleEnemy(enemy)
+        return true
+    end
+
+    return false
 end
 
 function Map:getPlacementInfo(deployableType)
@@ -626,6 +722,74 @@ function Map:dropStructure(
     return true
 end
 
+function Map:getRangeCircleColor(entity)
+    if entity.enemyType ~= nil then
+        return { 1, 0.15, 0.15, 0.45 }
+    end
+
+    -- All friendly range circles use the same color.
+    return { 0.25, 0.65, 1, 0.45 }
+end
+
+function Map:drawSelectedRangeCircle()
+    local entity = self:getSelectedEntity()
+
+    if entity == nil
+        or entity.range == nil
+        or entity.dead
+        or entity.extracted then
+        return
+    end
+
+    local color = self:getRangeCircleColor(entity)
+
+    love.graphics.setColor(
+        color[1],
+        color[2],
+        color[3],
+        color[4]
+    )
+
+    love.graphics.setLineWidth(2)
+    love.graphics.circle("line", entity.x, entity.y, entity.range)
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1)
+end
+
+function Map:drawSelectedEntityOutline()
+    local entity = self:getSelectedEntity()
+
+    if entity == nil
+        or entity.dead
+        or entity.extracted then
+        return
+    end
+
+    local width = entity.width or entity.radius * 2
+    local height = entity.height or entity.radius * 2
+    local color = self:getRangeCircleColor(entity)
+
+    love.graphics.setColor(
+        color[1],
+        color[2],
+        color[3],
+        0.95
+    )
+
+    love.graphics.setLineWidth(2)
+
+    love.graphics.rectangle(
+        "line",
+        entity.x - width / 2 - 5,
+        entity.y - height / 2 - 5,
+        width + 10,
+        height + 10
+    )
+
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1)
+end
+
 function Map:drawPlacementPreview()
     local selectedDeployable = self.buildMenu.selected
 
@@ -841,6 +1005,10 @@ function Map:update(dt)
     -- Remove enemy corpses after their fade finishes.
     for i = #self.enemies, 1, -1 do
         if self.enemies[i].removeCorpse then
+            if self.selectedEntity == self.enemies[i] then
+                self.selectedEntity = nil
+            end
+
             table.remove(self.enemies, i)
         end
     end
@@ -884,6 +1052,11 @@ function Map:update(dt)
         self.selectedStructure = nil
     end
 
+    if self.selectedEntity ~= nil
+        and self.selectedEntity.removeCorpse then
+        self.selectedEntity = nil
+    end
+
     for _, unit in ipairs(self.units) do
         unit:update(
             dt,
@@ -896,6 +1069,10 @@ function Map:update(dt)
     -- Remove player-unit corpses after their fade finishes.
     for i = #self.units, 1, -1 do
         if self.units[i].removeCorpse then
+            if self.selectedEntity == self.units[i] then
+                self.selectedEntity = nil
+            end
+
             table.remove(self.units, i)
         end
     end
@@ -936,6 +1113,9 @@ function Map:draw()
     -- Draw terrain under units and structures.
     self.terrain:draw()
 
+    -- Show selected attack range under battlefield objects.
+    self:drawSelectedRangeCircle()
+
     -- Draw targeting indicators under battlefield objects.
     for _, enemy in ipairs(self.enemies) do
         enemy:drawTargetIndicator()
@@ -943,10 +1123,6 @@ function Map:draw()
 
     for _, structure in ipairs(self.structures) do
         structure:drawTargetIndicator()
-    end
-
-    if self.selectedStructure ~= nil then
-        self.selectedStructure:drawSelectionIndicator()
     end
 
     for _, unit in ipairs(self.units) do
@@ -1010,6 +1186,13 @@ function Map:draw()
                 unit.height + 6
             )
         end
+    end
+
+    -- Draw a stronger outline around the inspected entity.
+    self:drawSelectedEntityOutline()
+
+    if self.selectedStructure ~= nil then
+        self.selectedStructure:drawSelectionIndicator()
     end
 
     -- Draw the current drag-selection box.
@@ -1083,6 +1266,12 @@ function Map:draw()
 
     love.graphics.print(waveText, 20, 20)
 
+    -- Draw the selected unit, structure, or enemy stats.
+    self.selectionPanel:draw(
+        self:getSelectedEntity(),
+        self.terrain
+    )
+
     if self.missionState ~= "playing" then
         -- Draw the mission result screen.
         love.graphics.setColor(0, 0, 0, 0.7)
@@ -1134,14 +1323,6 @@ function Map:mousepressed(x, y, button)
 
     local screenHeight = love.graphics.getHeight()
 
-    if button == 1 then
-        if self:selectStructureAt(x, y) then
-            return
-        end
-
-        self.selectedStructure = nil
-    end
-
     -- Handle left-clicks.
     if button == 1 then
         local clickedMenu = self.buildMenu:mousepressed(
@@ -1155,7 +1336,7 @@ function Map:mousepressed(x, y, button)
         )
 
         if clickedMenu then
-            self:clearSelectedUnits()
+            self:clearSelection()
             return
         end
 
@@ -1284,18 +1465,13 @@ function Map:mousereleased(x, y, button)
         dragDistanceX < 8
         and dragDistanceY < 8
 
-    -- Handle a single click.
+    -- Handle a single click on structures, units, or enemies.
     if wasClick then
-        for i = #self.units, 1, -1 do
-            local unit = self.units[i]
-
-            if unit:containsPoint(x, y) then
-                self:selectSingleUnit(unit)
-                return
-            end
+        if self:selectEntityAt(x, y) then
+            return
         end
 
-        self:clearSelectedUnits()
+        self:clearSelection()
         return
     end
 
@@ -1306,7 +1482,7 @@ function Map:mousereleased(x, y, button)
     local top = math.min(self.selectionStartY, y)
     local bottom = math.max(self.selectionStartY, y)
 
-    self:clearSelectedUnits()
+    self:clearSelection()
 
     for _, unit in ipairs(self.units) do
         local insideBox =
@@ -1319,6 +1495,13 @@ function Map:mousereleased(x, y, button)
         if insideBox then
             table.insert(self.selectedUnits, unit)
         end
+    end
+
+    -- The panel only inspects one entity for now.
+    if #self.selectedUnits == 1 then
+        self.selectedEntity = self.selectedUnits[1]
+    else
+        self.selectedEntity = nil
     end
 end
 
@@ -1344,7 +1527,7 @@ function Map:keypressed(key)
             table.insert(unitsToExtract, unit)
         end
 
-        self:clearSelectedUnits()
+        self:clearSelection()
 
         for _, unit in ipairs(unitsToExtract) do
             if self:getAvailableDropships() <= 0 then

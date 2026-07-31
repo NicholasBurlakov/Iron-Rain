@@ -16,7 +16,6 @@ function Unit.new(x, y, unitType)
 
         self.width = 18
         self.height = 26
-
         self.maxHealth = 100
         self.speed = 120
         self.capacityCost = 1
@@ -29,7 +28,6 @@ function Unit.new(x, y, unitType)
 
         self.width = 24
         self.height = 32
-
         self.maxHealth = 180
         self.speed = 85
         self.capacityCost = 2
@@ -45,6 +43,7 @@ function Unit.new(x, y, unitType)
     self.dead = false
     self.isExtracting = false
     self.extracted = false
+    self.extractionProgress = 0
     self.rotation = 0
 
     -- Corpse timing.
@@ -58,7 +57,41 @@ function Unit.new(x, y, unitType)
     self.projectiles = {}
     self.currentTarget = nil
 
+    -- Player-controlled target priority.
+    self.targetingModes = {
+        "Nearest",
+        "Strongest",
+        "Weakest",
+        "Siege First",
+        "Scout First"
+    }
+
+    self.targetingModeIndex = 1
+
     return self
+end
+
+function Unit:canChangeTargetingMode()
+    return not self.dead
+        and not self.isExtracting
+        and not self.extracted
+end
+
+function Unit:getTargetingMode()
+    return self.targetingModes[self.targetingModeIndex]
+        or "Nearest"
+end
+
+function Unit:cycleTargetingMode()
+    if not self:canChangeTargetingMode() then
+        return
+    end
+
+    self.targetingModeIndex = self.targetingModeIndex + 1
+
+    if self.targetingModeIndex > #self.targetingModes then
+        self.targetingModeIndex = 1
+    end
 end
 
 function Unit:takeDamage(amount)
@@ -72,6 +105,7 @@ function Unit:takeDamage(amount)
     if self.health <= 0 then
         self.health = 0
         self.dead = true
+        self.currentTarget = nil
 
         if love.math.random() < 0.5 then
             self.rotation = math.rad(90)
@@ -91,7 +125,8 @@ function Unit:findClosestEnemy(enemies)
             local dy = enemy.y - self.y
             local distance = math.sqrt(dx * dx + dy * dy)
 
-            if distance <= self.range and distance < closestDistance then
+            if distance <= self.range
+                and distance < closestDistance then
                 closestEnemy = enemy
                 closestDistance = distance
             end
@@ -101,13 +136,133 @@ function Unit:findClosestEnemy(enemies)
     return closestEnemy
 end
 
+function Unit:findStrongestEnemy(enemies)
+    local strongestEnemy = nil
+    local strongestHealth = -math.huge
+    local closestDistance = math.huge
+
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range then
+                local betterHealth =
+                    enemy.health > strongestHealth
+
+                local sameHealthButCloser =
+                    enemy.health == strongestHealth
+                    and distance < closestDistance
+
+                if betterHealth or sameHealthButCloser then
+                    strongestEnemy = enemy
+                    strongestHealth = enemy.health
+                    closestDistance = distance
+                end
+            end
+        end
+    end
+
+    return strongestEnemy
+end
+
+function Unit:findWeakestEnemy(enemies)
+    local weakestEnemy = nil
+    local weakestHealth = math.huge
+    local closestDistance = math.huge
+
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range then
+                local lowerHealth =
+                    enemy.health < weakestHealth
+
+                local sameHealthButCloser =
+                    enemy.health == weakestHealth
+                    and distance < closestDistance
+
+                if lowerHealth or sameHealthButCloser then
+                    weakestEnemy = enemy
+                    weakestHealth = enemy.health
+                    closestDistance = distance
+                end
+            end
+        end
+    end
+
+    return weakestEnemy
+end
+
+function Unit:findClosestEnemyOfType(enemies, enemyType)
+    local closestEnemy = nil
+    local closestDistance = math.huge
+
+    for _, enemy in ipairs(enemies) do
+        if not enemy.dead
+            and enemy.enemyType == enemyType then
+            local dx = enemy.x - self.x
+            local dy = enemy.y - self.y
+            local distance = math.sqrt(dx * dx + dy * dy)
+
+            if distance <= self.range
+                and distance < closestDistance then
+                closestEnemy = enemy
+                closestDistance = distance
+            end
+        end
+    end
+
+    return closestEnemy
+end
+
+function Unit:findTargetEnemy(enemies)
+    local mode = self:getTargetingMode()
+
+    if mode == "Strongest" then
+        return self:findStrongestEnemy(enemies)
+    end
+
+    if mode == "Weakest" then
+        return self:findWeakestEnemy(enemies)
+    end
+
+    if mode == "Siege First" then
+        local siegeTarget =
+            self:findClosestEnemyOfType(enemies, "siege")
+
+        if siegeTarget ~= nil then
+            return siegeTarget
+        end
+
+        return self:findClosestEnemy(enemies)
+    end
+
+    if mode == "Scout First" then
+        local scoutTarget =
+            self:findClosestEnemyOfType(enemies, "scout")
+
+        if scoutTarget ~= nil then
+            return scoutTarget
+        end
+
+        return self:findClosestEnemy(enemies)
+    end
+
+    return self:findClosestEnemy(enemies)
+end
+
 function Unit:update(
     dt,
     enemies,
     terrain,
     combatText
 )
-    -- Update active projectiles.
+    -- Update active projectiles even if the unit later dies.
     for i = #self.projectiles, 1, -1 do
         local projectile = self.projectiles[i]
 
@@ -120,7 +275,6 @@ function Unit:update(
 
     if self.dead then
         self.currentTarget = nil
-
         self.corpseAge = self.corpseAge + dt
 
         if self.corpseAge >=
@@ -147,7 +301,8 @@ function Unit:update(
     end
 
     -- Move toward the current order.
-    if self.targetX ~= nil and self.targetY ~= nil then
+    if self.targetX ~= nil
+        and self.targetY ~= nil then
         local dx = self.targetX - self.x
         local dy = self.targetY - self.y
         local distance = math.sqrt(dx * dx + dy * dy)
@@ -167,10 +322,10 @@ function Unit:update(
         end
     end
 
-    -- Find a target and fire.
+    -- Find a target using the unit's selected target priority.
     self.cooldown = self.cooldown - dt
 
-    local target = self:findClosestEnemy(enemies)
+    local target = self:findTargetEnemy(enemies)
     self.currentTarget = target
 
     if target ~= nil
@@ -212,8 +367,10 @@ function Unit:beginExtraction()
         return false
     end
 
-    -- Stop the unit from moving or firing.
+    -- Stop the unit from moving or firing while extraction begins.
     self.isExtracting = true
+    self.extractionProgress = 0.15
+    self.currentTarget = nil
     self.targetX = nil
     self.targetY = nil
     self.projectiles = {}
@@ -292,7 +449,6 @@ function Unit:draw()
     love.graphics.push()
     love.graphics.translate(self.x, self.y)
     love.graphics.rotate(self.rotation)
-
     love.graphics.rectangle(
         "fill",
         -self.width / 2,
@@ -300,7 +456,6 @@ function Unit:draw()
         self.width,
         self.height
     )
-
     love.graphics.pop()
 
     -- Draw health while alive.
@@ -314,7 +469,13 @@ function Unit:draw()
         local healthPercent = self.health / self.maxHealth
 
         love.graphics.setColor(1, 0, 0)
-        love.graphics.rectangle("fill", barX, barY, barWidth, barHeight)
+        love.graphics.rectangle(
+            "fill",
+            barX,
+            barY,
+            barWidth,
+            barHeight
+        )
 
         love.graphics.setColor(0, 1, 0)
         love.graphics.rectangle(
@@ -326,7 +487,13 @@ function Unit:draw()
         )
 
         love.graphics.setColor(0, 0, 0)
-        love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
+        love.graphics.rectangle(
+            "line",
+            barX,
+            barY,
+            barWidth,
+            barHeight
+        )
     end
 
     love.graphics.setColor(1, 1, 1)
